@@ -1,3 +1,4 @@
 ens-contracts/=lib/ens-contracts/contracts/
 forge-std/=lib/forge-std/src/
 @openzeppelin/=lib/openzeppelin-contracts/
+filecoin-solidity-api=lib/filecoin-solidity/
