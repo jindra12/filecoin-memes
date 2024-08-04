@@ -1,0 +1,13 @@
+src.js/node_modules/
+src/.github/
+src.js/dist/
+*.log
+.yarn/
+anvil.json
+privatekey.txt
+privatekey.dist.txt
+index.html
+!.yarn/patches/
+testcoin.*.json
+rpc.json
+deploy.zip
