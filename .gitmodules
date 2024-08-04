@@ -7,3 +7,6 @@
 [submodule "src/lib/ens-contracts"]
 	path = src/lib/ens-contracts
 	url = https://github.com/ensdomains/ens-contracts
+[submodule "src/lib/filecoin-solidity"]
+	path = src/lib/filecoin-solidity
+	url = https://github.com/filecoin-project/filecoin-solidity
