@@ -9,7 +9,10 @@
   "scripts": {
     "build": "rimraf dist; yarn webpack --mode production",
     "build:dev": "rimraf dist; yarn webpack --mode development",
-    "serve": "webpack serve --mode development"
+    "serve": "webpack serve --mode development",
+    "typing:be": "cd ../src; forge build --force --extra-output-files abi; cd ../src.js; yarn typechain --target=ethers-v6 --out-dir=./contracts ../src/out/**/{MemePage}.abi.json",
+    "build:be": "cd ../src; solc --bin --hashes MemePage.sol -o out",
+    "deploy:be": "yarn run wallaby-fevm-msg-signer create-evm-actor ../src/out/MemePage.bin"
   },
   "dependencies": {
     "@typechain/ethers-v6": "^0.5.1",
