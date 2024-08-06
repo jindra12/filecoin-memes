@@ -4,10 +4,9 @@ import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.so
 import {ReverseRegistrar} from "../lib/ens-contracts/contracts/reverseRegistrar/ReverseRegistrar.sol";
 import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
 
-contract MemePage is Ownable {
+interface MemePageStructs {
     struct Likes {
         uint64 likesCount;
-        mapping(address => bool) likesMap;
         address[] likes;
     }
     
@@ -15,70 +14,50 @@ contract MemePage is Ownable {
         uint64 id;
         address author;
         string content;
-        uint64 time;
-        uint64 editTime;
+        uint256 time;
+        uint256 editTime;
         Likes likes;
     }
     
     struct Post {
         uint64 id;
         address author;
-        uint64 time;
+        uint256 time;
+        uint256 editTime;
         bytes content;
         Likes likes;
         Comment[] comments;
         mapping(uint64 => uint64) commentsMap;
     }
+}
+
+contract MemePage is Ownable {
+    mapping(uint64 => mapping(address => bool)) internal _likesMap;
+    mapping(uint64 => mapping(uint64 => uint64)) internal _commentsMap;
+    mapping(uint64 => uint64) internal _postsMap;
 
     Post[] internal _posts;
     mapping(uint64 => uint64) _postIndex;
-    uint64 internal _likeFee;
-    uint64 internal _commentFee;
-    uint64 internal _postId = 1;
-    uint64 internal _commentId = 1;
 
-    function _find(address[] memory list, address item) internal pure returns(uint64) {
-        for (uint64 i = 0; i < list.length; i++) {
-            if (list[i] == item) {
-                return i;
+    uint64 internal _postId = 1;
+    uint64 internal _commentIDId = 1;
+
+    function _removeLike(Likes memory like) internal {
+        for (uint64 i = 0; i < like.likes.length; i++) {
+            if (like.likes[i] == msg.sender) {
+                like.likesMap[msg.sender] = false;
+                like.likesCount--;
+                if (i == like.likes.length - 1) {
+                    like.likes.pop();
+                } else {
+                    like.likes[i] = like.likes[like.likes.length - 1];
+                    like.likes.pop();
+                }
             }
         }
-        return -1;
     }
 
-    function _removeLike(uint64 postId, address item) internal {
-        uint64 index = _find(_posts[_postIndex[postId]].likes, item);
-        if (index == -1) {
-            return;
-        }
-        if (index == _posts[_postIndex[postId]].likes.length - 1) {
-            uint64 _ = _posts[_postIndex[postId]].likes.pop();
-        } else {
-            _posts[_postIndex[postId]].likes[index] = _posts[_postIndex[postId]].likes[_posts[_postIndex[postId]].likes.length - 1];
-            uint64 _ = _posts[_postIndex[postId]].likes.pop();
-        }
-    }
-
-    function _removeComment(uint64 postId, uint64 commentId) internal {
-        uint64 index = _posts[_postIndex[postId]].commentsMap[commentId];
-        if (index == _posts[_postIndex[postId]].comments.length - 1) {
-            uint64 _ = _posts[_postIndex[postId]].comments.pop();
-        } else {
-            _posts[_postIndex[postId]].comments[index] = _posts[_postIndex[postId]].comments[_posts[_postIndex[postId]].comments.length - 1];
-            uint64 _ = _posts[_postIndex[postId]].comments.pop();
-        }
-    }
-
-    function _removePost(uint64 index) internal {
-        if (index == _posts[_postIndex[index]].length - 1) {
-            uint64 _ = _posts[_postIndex[index]].pop();
-        } else {
-            _posts[_postIndex[index]][index] = _posts[_postIndex[index]][_posts[_postIndex[index]].length - 1];
-            uint64 _ = _posts[_postIndex[index]].pop();
-        }
-    }
-
-    function _addPost(bytes content) internal {
+    function _addPost(bytes memory content) internal {
         uint64 postId = _postId;
         _postIndex[_postId] = _posts.length;
         Post memory post;
@@ -90,36 +69,138 @@ contract MemePage is Ownable {
         _postId++;
     }
 
-    function _addComment(string memory content, uint64 postId) internal {
+    function _editPost(bytes memory content, uint64 postId) internal {
         Post memory post = _posts[_postIndex[postId]];
         require(post.author == msg.sender, "Wrong sender");
         require(post.id == postId, "Post does not exist");
+        post.content = content;
+        post.editTime = block.timestamp;
+    }
+
+    function _removePost(uint64 postId) internal {
+        uint64 index = _postIndex[postId];
+        Post memory post = _posts[index];
+        require(post.author == msg.sender);
+        require(post.id == postId, "Post does not exist");
+        if (index == _posts.length - 1) {
+            _postIndex[postId] = 0;
+            _posts.pop();
+        } else {
+            _posts[index] = _posts[_posts.length - 1];
+            _postIndex[postId] = 0;
+            _postIndex[_posts[index].id] = index;
+            _posts.pop();
+        }
+    }
+
+    function _addComment(string memory content, uint64 postId) internal {
+        Post memory post = _posts[_postIndex[postId]];
         Comment memory comment;
         comment.id = _commentId;
         comment.author = msg.sender;
         comment.time = block.timestamp;
         comment.content = content;
-        post.commentsMap[post.comments.length] = _commentId;
+        _commentsMap[postId][_commentId] = posts.comments.length;
         post.comments.push(comment);
         _commentId++;
     }
 
-    function _addLike(Likes memory like) internal {
+    function _editComment(string memory content, uint64 postId, uint64 commentId) internal {
+        uint64 index = _commentsMap[postId][commentId];
+        Comment memory comment = _posts[_postIndex[postId]].comments[index];
+        require(comment.author == msg.sender, "Wrong sender");
+        require(comment.id == commentId, "Comment does not exist");
+        comment.editTime = block.timestamp;
+        comment.content = content;
+    }
+
+    function _removeComment(uint64 postId, uint64 commentId) internal {
+        uint64 postIndex = _postIndex[postId];
+        uint64 index = _commentsMap[postId][commentId];
+        Comment memory comment = _posts[postIndex].comments[index];
+        require(comment.author == msg.sender, "Wrong sender");
+        require(comment.id == commentId, "Comment does not exist");
+        if (index == _posts[postIndex].comments.length - 1) {
+            _posts[postIndex].comments.pop();
+        } else {
+            _posts[postIndex].comments[index] = _posts[postIndex].comments[_posts[postIndex].comments.length - 1];
+            _commentsMap[postId][_posts[postIndex].comments[index].id] = index;
+            _posts[postIndex].comments.pop();
+        }
+        _commentsMap[postId][commentId] = 0;
+    }
+
+    function _addLike(uint64 postId, Likes memory like) internal {
         require(!like.likesMap[msg.sender], "Liked already");
         like.likes.push(msg.sender);
-        like.likesMap[msg.sender] = true;
+        
         like.likesCount++;
     }
 
-    function _addLike(address like, uint64 postId) internal {
+    function _addLike(uint64 postId) internal {
         Post memory post = _posts[_postIndex[postId]];
         _addLike(post.likes);
     }
 
-    function _addLike(address like, uint64 postId, uint64 commentId) internal {
+    function _addLike(uint64 postId, uint64 commentId) internal {
         Post memory post = _posts[_postIndex[postId]];
         Comment memory comment = post.comments[post.commentsMap[commentId]];
         _addLike(comment.likes);
+    }
+
+    function _removeLike(uint64 postId) internal {
+        Post memory post = _posts[_postIndex[postId]];
+        _removeLike(post.likes);
+    }
+
+    function _removeLike(uint64 postId, uint64 commentId) internal {
+        Post memory post = _posts[_postIndex[postId]];
+        Comment memory comment = post.comments[post.commentsMap[commentId]];
+        _removeLike(comment.likes);
+    }
+
+    function _comparePostsByTime(Post memory a, Post memory b) internal pure returns(bool) {
+        return b.time >= a.time;
+    }
+
+    function _comparePostsByHot(Post memory a, Post memory b) internal pure returns(bool) {
+        return (b.time * b.likes.likesCount) >= (a.time * a.likes.likesCount);
+    }
+
+    function _comparePostsByLike(Post memory a, Post memory b) internal pure returns(bool) {
+        return b.likes.likesCount >= a.likes.likesCount;
+    }
+
+    function _comparePosts(Post memory a, Post memory b, uint64 kind) internal pure returns(bool) {
+        if (kind == 0) {
+            return _comparePostsByTime(a, b);
+        } else if (kind == 1) {
+            return _comparePostsByHot(a, b);
+        } else {
+            return _comparePostsByLike(a, b);
+        }
+    }
+
+    function _compareCommentsByTime(Comment memory a, Comment memory b) internal pure returns(bool) {
+        return b.time >= a.time;
+    }
+
+    function _compareCommentsByHot(Comment memory a, Comment memory b) internal pure returns(bool) {
+        return (b.time * b.likes.likesCount) >= (a.time * a.likes.likesCount);
+    }
+
+    function _compareCommentsByLike(Comment memory a, Comment memory b) internal pure returns(bool) {
+        return b.likes.likesCount >= a.likes.likesCount;
+    }
+
+    function _compareComments(Comment memory a, Comment memory b, uint64 kind) internal pure returns(bool) {
+        if (kind == 0) {
+            return _compareCommentsByTime(a, b);
+        } else if (kind == 1) {
+            return _compareCommentsByHot(a, b);
+        } else {
+            return _compareCommentsByLike(a, b);
+        }
     }
 
     constructor(ENS ens, string memory name, bytes32 addressReverseNode) {
