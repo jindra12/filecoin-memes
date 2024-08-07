@@ -6,12 +6,12 @@ import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
 
 interface MemePageStructs {
     struct Likes {
-        uint64 likesCount;
+        uint256 likesCount;
         address[] likes;
     }
     
     struct Comment {
-        uint64 id;
+        uint256 id;
         address author;
         string content;
         uint256 time;
@@ -20,32 +20,31 @@ interface MemePageStructs {
     }
     
     struct Post {
-        uint64 id;
+        uint256 id;
         address author;
         uint256 time;
         uint256 editTime;
         bytes content;
         Likes likes;
         Comment[] comments;
-        mapping(uint64 => uint64) commentsMap;
     }
 }
 
-contract MemePage is Ownable {
-    mapping(uint64 => mapping(address => bool)) internal _likesMap;
-    mapping(uint64 => mapping(uint64 => uint64)) internal _commentsMap;
-    mapping(uint64 => uint64) internal _postsMap;
+contract MemePage is Ownable,MemePageStructs {
+    mapping(uint256 => mapping(address => bool)) internal _likesMap;
+    mapping(uint256 => mapping(uint256 => mapping(address => bool))) internal _likesCommentsMap;
+    mapping(uint256 => mapping(uint256 => uint256)) internal _commentsMap;
+    mapping(uint256 => uint256) internal _postsMap;
 
     Post[] internal _posts;
-    mapping(uint64 => uint64) _postIndex;
+    mapping(uint256 => uint256) _postIndex;
 
-    uint64 internal _postId = 1;
-    uint64 internal _commentIDId = 1;
+    uint256 internal _postId = 1;
+    uint256 internal _commentId = 1;
 
-    function _removeLike(Likes memory like) internal {
-        for (uint64 i = 0; i < like.likes.length; i++) {
+    function _removeLike(Likes storage like) internal {
+        for (uint256 i = 0; i < like.likes.length; i++) {
             if (like.likes[i] == msg.sender) {
-                like.likesMap[msg.sender] = false;
                 like.likesCount--;
                 if (i == like.likes.length - 1) {
                     like.likes.pop();
@@ -58,7 +57,7 @@ contract MemePage is Ownable {
     }
 
     function _addPost(bytes memory content) internal {
-        uint64 postId = _postId;
+        uint256 postId = _postId;
         _postIndex[_postId] = _posts.length;
         Post memory post;
         post.id = postId;
@@ -69,16 +68,16 @@ contract MemePage is Ownable {
         _postId++;
     }
 
-    function _editPost(bytes memory content, uint64 postId) internal {
-        Post memory post = _posts[_postIndex[postId]];
+    function _editPost(bytes memory content, uint256 postId) internal {
+        Post storage post = _posts[_postIndex[postId]];
         require(post.author == msg.sender, "Wrong sender");
         require(post.id == postId, "Post does not exist");
         post.content = content;
         post.editTime = block.timestamp;
     }
 
-    function _removePost(uint64 postId) internal {
-        uint64 index = _postIndex[postId];
+    function _removePost(uint256 postId) internal {
+        uint256 index = _postIndex[postId];
         Post memory post = _posts[index];
         require(post.author == msg.sender);
         require(post.id == postId, "Post does not exist");
@@ -93,30 +92,30 @@ contract MemePage is Ownable {
         }
     }
 
-    function _addComment(string memory content, uint64 postId) internal {
-        Post memory post = _posts[_postIndex[postId]];
+    function _addComment(string memory content, uint256 postId) internal {
+        Post storage post = _posts[_postIndex[postId]];
         Comment memory comment;
         comment.id = _commentId;
         comment.author = msg.sender;
         comment.time = block.timestamp;
         comment.content = content;
-        _commentsMap[postId][_commentId] = posts.comments.length;
+        _commentsMap[postId][_commentId] = post.comments.length;
         post.comments.push(comment);
         _commentId++;
     }
 
-    function _editComment(string memory content, uint64 postId, uint64 commentId) internal {
-        uint64 index = _commentsMap[postId][commentId];
-        Comment memory comment = _posts[_postIndex[postId]].comments[index];
+    function _editComment(string memory content, uint256 postId, uint256 commentId) internal {
+        uint256 index = _commentsMap[postId][commentId];
+        Comment storage comment = _posts[_postIndex[postId]].comments[index];
         require(comment.author == msg.sender, "Wrong sender");
         require(comment.id == commentId, "Comment does not exist");
         comment.editTime = block.timestamp;
         comment.content = content;
     }
 
-    function _removeComment(uint64 postId, uint64 commentId) internal {
-        uint64 postIndex = _postIndex[postId];
-        uint64 index = _commentsMap[postId][commentId];
+    function _removeComment(uint256 postId, uint256 commentId) internal {
+        uint256 postIndex = _postIndex[postId];
+        uint256 index = _commentsMap[postId][commentId];
         Comment memory comment = _posts[postIndex].comments[index];
         require(comment.author == msg.sender, "Wrong sender");
         require(comment.id == commentId, "Comment does not exist");
@@ -130,32 +129,41 @@ contract MemePage is Ownable {
         _commentsMap[postId][commentId] = 0;
     }
 
-    function _addLike(uint64 postId, Likes memory like) internal {
-        require(!like.likesMap[msg.sender], "Liked already");
+    function _addLike(uint256 postId, Likes storage like) internal {
+        require(!_likesMap[postId][msg.sender], "Liked already");
         like.likes.push(msg.sender);
-        
+        _likesMap[postId][msg.sender] = true;
         like.likesCount++;
     }
 
-    function _addLike(uint64 postId) internal {
-        Post memory post = _posts[_postIndex[postId]];
-        _addLike(post.likes);
+    function _addLike(uint256 postId, uint256 commentId, Likes storage like) internal {
+        require(!_likesCommentsMap[postId][commentId][msg.sender], "Liked already");
+        like.likes.push(msg.sender);
+        _likesCommentsMap[postId][commentId][msg.sender] = true;
+        like.likesCount++;
     }
 
-    function _addLike(uint64 postId, uint64 commentId) internal {
-        Post memory post = _posts[_postIndex[postId]];
-        Comment memory comment = post.comments[post.commentsMap[commentId]];
-        _addLike(comment.likes);
+    function _addLike(uint256 postId) internal {
+        Post storage post = _posts[_postIndex[postId]];
+        _addLike(postId, post.likes);
     }
 
-    function _removeLike(uint64 postId) internal {
-        Post memory post = _posts[_postIndex[postId]];
+    function _addLike(uint256 postId, uint256 commentId) internal {
+        Post storage post = _posts[_postIndex[postId]];
+        Comment storage comment = post.comments[_commentsMap[postId][commentId]];
+        _addLike(postId, commentId, comment.likes);
+    }
+
+    function _removeLike(uint256 postId) internal {
+        Post storage post = _posts[_postIndex[postId]];
+        _likesMap[postId][msg.sender] = false;
         _removeLike(post.likes);
     }
 
-    function _removeLike(uint64 postId, uint64 commentId) internal {
-        Post memory post = _posts[_postIndex[postId]];
-        Comment memory comment = post.comments[post.commentsMap[commentId]];
+    function _removeLike(uint256 postId, uint256 commentId) internal {
+        Post storage post = _posts[_postIndex[postId]];
+        Comment storage comment = post.comments[_commentsMap[postId][commentId]];
+        _likesCommentsMap[postId][commentId][msg.sender] = false;
         _removeLike(comment.likes);
     }
 
@@ -171,7 +179,7 @@ contract MemePage is Ownable {
         return b.likes.likesCount >= a.likes.likesCount;
     }
 
-    function _comparePosts(Post memory a, Post memory b, uint64 kind) internal pure returns(bool) {
+    function _comparePosts(Post memory a, Post memory b, uint256 kind) internal pure returns(bool) {
         if (kind == 0) {
             return _comparePostsByTime(a, b);
         } else if (kind == 1) {
@@ -193,7 +201,7 @@ contract MemePage is Ownable {
         return b.likes.likesCount >= a.likes.likesCount;
     }
 
-    function _compareComments(Comment memory a, Comment memory b, uint64 kind) internal pure returns(bool) {
+    function _compareComments(Comment memory a, Comment memory b, uint256 kind) internal pure returns(bool) {
         if (kind == 0) {
             return _compareCommentsByTime(a, b);
         } else if (kind == 1) {
