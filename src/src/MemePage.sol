@@ -155,6 +155,106 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         }
     }
 
+    function _addSortedPosts(Post[] memory aS, Post[] memory bS, uint256 kind) internal pure returns(Post[] memory) {
+        uint256 asIndex = 0;
+        uint256 bsIndex = 0;
+        Post[] memory result = new Post[](aS.length + bS.length);
+        uint256 resultIndex = 0;
+
+        while(resultIndex < (aS.length + bS.length)) {
+            if (asIndex == aS.length) {
+                result[resultIndex] = bS[bsIndex];
+                resultIndex++;
+                bsIndex++;
+            } else if (bsIndex == bS.length) {
+                result[resultIndex] = aS[asIndex];
+                resultIndex++;
+                asIndex++;
+            } else if (_comparePosts(aS[asIndex], bS[bsIndex], kind)) {
+                result[resultIndex] = bS[bsIndex];
+                resultIndex++;
+                bsIndex++;
+            } else {
+                result[resultIndex] = aS[asIndex];
+                resultIndex++;
+                asIndex++;
+            }
+        }
+
+        return result;
+    }
+
+    function _slicePosts(Post[] memory posts, uint256 from, uint256 to) internal pure returns(Post[] memory) {
+        Post[] memory sliced = new Post[](to - from);
+        uint256 slicedIndex = 0;
+        for (uint256 i = from; i < to; i++) {
+            sliced[slicedIndex] = posts[i];
+            slicedIndex++;
+        }
+        return sliced;
+    }
+
+    function _mergeSortPosts(Post[] memory posts, uint256 kind) internal pure returns(Post[] memory) {
+        if (posts.length == 1) {
+            return posts;
+        }
+        uint256 halfIndex = posts.length / 2;
+        Post[] memory first = _slicePosts(posts, 0, halfIndex);
+        Post[] memory second = _slicePosts(posts, halfIndex, posts.length);
+
+        return _addSortedPosts(_mergeSortPosts(first, kind), _mergeSortPosts(second, kind), kind);
+    }
+
+    function _addSortedComments(Comment[] memory aS, Comment[] memory bS, uint256 kind) internal pure returns(Comment[] memory) {
+        uint256 asIndex = 0;
+        uint256 bsIndex = 0;
+        Comment[] memory result = new Comment[](aS.length + bS.length);
+        uint256 resultIndex = 0;
+
+        while(resultIndex < (aS.length + bS.length)) {
+            if (asIndex == aS.length) {
+                result[resultIndex] = bS[bsIndex];
+                resultIndex++;
+                bsIndex++;
+            } else if (bsIndex == bS.length) {
+                result[resultIndex] = aS[asIndex];
+                resultIndex++;
+                asIndex++;
+            } else if (_compareComments(aS[asIndex], bS[bsIndex], kind)) {
+                result[resultIndex] = bS[bsIndex];
+                resultIndex++;
+                bsIndex++;
+            } else {
+                result[resultIndex] = aS[asIndex];
+                resultIndex++;
+                asIndex++;
+            }
+        }
+
+        return result;
+    }
+
+    function _sliceComments(Comment[] memory comments, uint256 from, uint256 to) internal pure returns(Comment[] memory) {
+        Comment[] memory sliced = new Comment[](to - from);
+        uint256 slicedIndex = 0;
+        for (uint256 i = from; i < to; i++) {
+            sliced[slicedIndex] = comments[i];
+            slicedIndex++;
+        }
+        return sliced;
+    }
+
+    function _mergeSortComments(Comment[] memory comments, uint256 kind) internal pure returns(Comment[] memory) {
+        if (comments.length == 1) {
+            return comments;
+        }
+        uint256 halfIndex = comments.length / 2;
+        Comment[] memory first = _sliceComments(comments, 0, halfIndex);
+        Comment[] memory second = _sliceComments(comments, halfIndex, comments.length);
+
+        return _addSortedComments(_mergeSortComments(first, kind), _mergeSortComments(second, kind), kind);
+    }
+
     function _compareCommentsByTime(Comment memory a, Comment memory b) internal pure returns(bool) {
         return b.time >= a.time;
     }
@@ -177,36 +277,59 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         }
     }
 
-    function _filterPostsBy(uint256 kind, uint256 limit) internal view returns (Post[] memory) {
+    function _getNewestPosts(uint256 skip, uint256 limit) internal view returns (Post[] memory) {
+        Post[] memory posts = new Post[](limit);
+        uint256 resultIndex = 0;
+        uint256 start = _posts.length - 1;
+        if (skip >= start) {
+            return posts;
+        }
+        for (uint256 i = start - skip; i >= 0; i--) {
+            posts[resultIndex] = _posts[i];
+            resultIndex++;
+            if (resultIndex == limit) {
+                return posts;
+            }
+        }
+        return posts;
+    }
+
+    function _filterPostsBy(uint256 kind, uint256 skip, uint256 limit) internal view returns (Post[] memory) {
         Post[] memory posts = new Post[](limit);
         uint256 resultIndex = 0;
         uint256 timeUnit = kind == 1 ? _getDay() : kind == 2 ? _getWeek() : _getMonth(); 
         uint256[] memory ids = kind == 1 ? _postToday[timeUnit] : kind == 2 ? _postWeek[timeUnit] : _postMonth[timeUnit];
-
-        for (uint256 i = 0; i < ids.length; i++) {
+        uint256 start = ids.length - 1;
+        if (skip >= start) {
+            return posts;
+        }
+        for (uint256 i = start - skip; i >= 0; i--) {
             uint256 index = _postIndex[ids[i]];
             posts[resultIndex] = _posts[index];
             resultIndex++;
             if (limit == resultIndex) {
-                break;
+                return posts;
             }
         }
 
         return posts;
     }
 
-    function _filterCommentsBy(uint256 postId, uint256 kind, uint256 limit) internal view returns (Comment[] memory) {
+    function _filterCommentsBy(uint256 postId, uint256 kind, uint256 skip, uint256 limit) internal view returns (Comment[] memory) {
         Comment[] memory comments;
         uint256 resultIndex = 0;
         uint256 timeUnit = kind == 1 ? _getDay() : kind == 2 ? _getWeek() : _getMonth(); 
         uint256[] memory ids = kind == 1 ? _commentToday[postId][timeUnit] : kind == 2 ? _commentWeek[postId][timeUnit] : _commentMonth[postId][timeUnit];
-
-        for (uint256 i = 0; i < ids.length; i++) {
+        uint256 start = ids.length - 1;
+        if (skip >= start) {
+            return comments;
+        }
+        for (uint256 i = start - skip; i >= 0; i--) {
             uint256 commentIndex = _commentIndex[ids[i]];
             comments[resultIndex] = _comments[commentIndex];
             resultIndex++;
             if (resultIndex == limit) {
-                break;
+                return comments;
             }
         }
          
@@ -214,7 +337,7 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     }
 
     function _filterPostsByTags(Post[] memory posts, uint256 limit, uint256[] memory tagHashes, string[] memory tags) internal view returns (Post[] memory) {
-        require(tagHashes.length == tags.length, "Invalid tags sent");
+        require(tagHashes.length == tags.length && tagHashes.length > 0, "Invalid tags sent");
         Post[] memory result = new Post[](limit);
         uint256 resultIndex = 0;
 
@@ -258,6 +381,9 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
             tag.hash = post.tagIds[i];
             _addTag(tag);
         }
+
+        _authorsFees[post.author] += _likeFee - _likeFeeProfit;
+        _ownerFees += _likeFeeProfit;
     }
 
     function addLike(uint256 postId, uint256 commentId) public payable {
@@ -267,6 +393,9 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         comment.likes.likes.push(msg.sender);
         _likesCommentsMap[postId][commentId][msg.sender] = true;
         comment.likes.likesCount++;
+
+        _authorsFees[comment.author] += _likeFee - _likeFeeProfit;
+        _ownerFees += _likeFeeProfit;
     }
 
     function removeLike(uint256 postId) public {
@@ -377,6 +506,14 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         }
     }
 
+    function getLikeFee() public view returns(uint256) {
+        return _likeFee;
+    }
+
+    function getLikeFeeProfit() public view returns(uint256) {
+        return _likeFeeProfit;
+    }
+
     function setLikeFee(uint256 fee) public onlyOwner() {
         require(fee > _likeFeeProfit, "Invalid fees for likes");
         _likeFee = fee;
@@ -385,5 +522,31 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     function setLikeFeeProfit(uint256 fee) public onlyOwner() {
         require(_likeFee > fee, "Invalid fees for likes");
         _likeFeeProfit = fee;
+    }
+
+    function withdrawOwner() public onlyOwner() {
+        require(_ownerFees > 0, "Nothing to withdraw");
+        (bool ok,) = owner().call{ value: _ownerFees }("");
+        require(ok, "Transaction failed");
+        _ownerFees = 0;
+    }
+
+    function withdrawAuthor() public {
+        require(_authorsFees[msg.sender] > 0, "Nothing to withdraw");
+        (bool ok,) = msg.sender.call{ value: _authorsFees[msg.sender] }("");
+        require(ok, "Transaction failed");
+        _authorsFees[msg.sender] = 0;
+    }
+
+    function getWithdrawableOwner() public view returns(uint256) {
+        return _ownerFees;
+    }
+
+    function getWithdrawableAuthor() public view returns(uint256) {
+        return _authorsFees[msg.sender];
+    }
+
+    function getPosts(uint256 filter, uint256 order, uint256 skip, uint256 limit) public view returns(Post[] memory) {
+        return _mergeSortPosts(filter == 0 ? _getNewestPosts(skip, limit) : _filterPostsBy(filter, skip, limit), order);
     }
 }
