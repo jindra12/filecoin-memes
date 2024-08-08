@@ -19,6 +19,6 @@ contract MemePageTest is Test {
     }
 
     function setUp() public {
-        memePage = new MemePage(ENS(address(0)), "", 0x0);
+        memePage = new MemePage(50, 5, ENS(address(0)), "", 0x0);
     }
 }

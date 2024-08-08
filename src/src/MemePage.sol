@@ -27,7 +27,7 @@ interface MemePageStructs {
         string title;
         string content;
         Likes likes;
-        Comment[] comments;
+        uint256[] commentIds;
         Tag[] tags;
     }
 
@@ -68,11 +68,17 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     mapping(uint256 => string) internal _tagNames;
     mapping(uint256 => uint256) internal _tagPopularities;
 
+    uint256 internal _ownerFees = 0;
+    mapping(address => uint256) internal _authorsFees;
+
     Tag[] internal _bestTags;
     uint256 internal _bestTagsLimit;
 
     Post[] internal _posts;
     mapping(uint256 => uint256) _postIndex;
+
+    Comment[] internal _comments;
+    mapping(uint256 => uint256) _commentIndex;
 
     uint256 internal _postId = 1;
     uint256 internal _commentId = 1;
@@ -242,12 +248,12 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
 
     function addLike(uint256 postId) public payable {
         require(!_likesMap[postId][msg.sender], "Liked already");
+        require(msg.value == _likeFee, "Not enough value");
         Post storage post = _posts[_postIndex[postId]];
-        like.likes.push(msg.sender);
+        post.likes.likes.push(msg.sender);
         _likesMap[postId][msg.sender] = true;
-        like.likesCount++;
+        post.likes.likesCount++;
 
-        Post memory post = _posts[_postIndex[postId]];
         for (uint256 i = 0; i < post.tags.length; i++) {
             _addTag(post.tags[i]);
         }
@@ -255,11 +261,12 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
 
     function addLike(uint256 postId, uint256 commentId) public payable {
         require(!_likesCommentsMap[postId][commentId][msg.sender], "Liked already");
+        require(msg.value == _likeFee, "Not enough value");
         Post storage post = _posts[_postIndex[postId]];
         Comment storage comment = post.comments[_commentsMap[postId][commentId]];
-        like.likes.push(msg.sender);
+        post.likes.likes.push(msg.sender);
         _likesCommentsMap[postId][commentId][msg.sender] = true;
-        like.likesCount++;
+        post.likes.likesCount++;
     }
 
     function removeLike(uint256 postId) public {
@@ -299,7 +306,7 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
             tag.hash = tagHashes[i];
             _addTag(tag);
             _postsByTag[tag.hash][postId] = true;
-            post.tags.push(tag);
+            _posts[_posts.length - 1].tags.push(tag);
         }
 
         _postId++;
@@ -337,8 +344,10 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         comment.author = msg.sender;
         comment.time = block.timestamp;
         comment.content = content;
+
         _commentsMap[postId][_commentId] = post.comments.length;
-        post.comments.push(comment);
+        _commentIndex[_commentId] = _comments.length;
+        _comments.push(comment);
 
         _commentToday[_getDay()][postId].push(_commentId);
         _commentToday[_getWeek()][postId].push(_commentId);
@@ -370,5 +379,15 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
             _posts[postIndex].comments.pop();
         }
         _commentsMap[postId][commentId] = 0;
+    }
+
+    function setLikeFee(uint256 fee) public onlyOwner() {
+        require(fee > _likeFeeProfit, "Invalid fees for likes");
+        _likeFee = fee;
+    }
+
+    function setLikeFeeProfit(uint256 fee) public onlyOwner() {
+        require(_likeFee > fee, "Invalid fees for likes");
+        _likeFeeProfit = fee;
     }
 }
