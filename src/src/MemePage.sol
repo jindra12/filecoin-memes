@@ -28,7 +28,7 @@ interface MemePageStructs {
         string content;
         Likes likes;
         uint256[] commentIds;
-        Tag[] tags;
+        uint256[] tagIds;
     }
 
     struct Tag {
@@ -53,7 +53,6 @@ interface MemePageEvents {
 contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     mapping(uint256 => mapping(address => bool)) internal _likesMap;
     mapping(uint256 => mapping(uint256 => mapping(address => bool))) internal _likesCommentsMap;
-    mapping(uint256 => mapping(uint256 => uint256)) internal _commentsMap;
     mapping(uint256 => uint256) internal _postsMap;
 
     mapping(uint256 => uint256[]) internal _postToday;
@@ -203,9 +202,8 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         uint256[] memory ids = kind == 1 ? _commentToday[postId][timeUnit] : kind == 2 ? _commentWeek[postId][timeUnit] : _commentMonth[postId][timeUnit];
 
         for (uint256 i = 0; i < ids.length; i++) {
-            uint256 postIndex = _postIndex[postId];
-            uint256 commentIndex = _commentsMap[postId][ids[i]];
-            comments[resultIndex] = _posts[postIndex].comments[commentIndex];
+            uint256 commentIndex = _commentIndex[ids[i]];
+            comments[resultIndex] = _comments[commentIndex];
             resultIndex++;
             if (resultIndex == limit) {
                 break;
@@ -254,19 +252,21 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         _likesMap[postId][msg.sender] = true;
         post.likes.likesCount++;
 
-        for (uint256 i = 0; i < post.tags.length; i++) {
-            _addTag(post.tags[i]);
+        for (uint256 i = 0; i < post.tagIds.length; i++) {
+            Tag memory tag;
+            tag.name = _tagNames[post.tagIds[i]];
+            tag.hash = post.tagIds[i];
+            _addTag(tag);
         }
     }
 
     function addLike(uint256 postId, uint256 commentId) public payable {
         require(!_likesCommentsMap[postId][commentId][msg.sender], "Liked already");
         require(msg.value == _likeFee, "Not enough value");
-        Post storage post = _posts[_postIndex[postId]];
-        Comment storage comment = post.comments[_commentsMap[postId][commentId]];
-        post.likes.likes.push(msg.sender);
+        Comment storage comment = _comments[_commentIndex[commentId]];
+        comment.likes.likes.push(msg.sender);
         _likesCommentsMap[postId][commentId][msg.sender] = true;
-        post.likes.likesCount++;
+        comment.likes.likesCount++;
     }
 
     function removeLike(uint256 postId) public {
@@ -277,8 +277,7 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     }
 
     function removeLike(uint256 postId, uint256 commentId) public {
-        Post storage post = _posts[_postIndex[postId]];
-        Comment storage comment = post.comments[_commentsMap[postId][commentId]];
+        Comment storage comment = _comments[_commentIndex[commentId]];
         require(_likesCommentsMap[postId][commentId][msg.sender], "Not liked before");
         _likesCommentsMap[postId][commentId][msg.sender] = false;
         _removeLike(comment.likes);
@@ -306,7 +305,7 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
             tag.hash = tagHashes[i];
             _addTag(tag);
             _postsByTag[tag.hash][postId] = true;
-            _posts[_posts.length - 1].tags.push(tag);
+            _posts[_posts.length - 1].tagIds.push(tag.hash);
         }
 
         _postId++;
@@ -338,14 +337,12 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     }
 
     function addComment(string memory content, uint256 postId) public {
-        Post storage post = _posts[_postIndex[postId]];
         Comment memory comment;
         comment.id = _commentId;
         comment.author = msg.sender;
         comment.time = block.timestamp;
         comment.content = content;
 
-        _commentsMap[postId][_commentId] = post.comments.length;
         _commentIndex[_commentId] = _comments.length;
         _comments.push(comment);
 
@@ -356,29 +353,28 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         _commentId++;
     }
 
-    function editComment(string memory content, uint256 postId, uint256 commentId) public {
-        uint256 index = _commentsMap[postId][commentId];
-        Comment storage comment = _posts[_postIndex[postId]].comments[index];
+    function editComment(string memory content, uint256 commentId) public {
+        Comment storage comment = _comments[_commentIndex[_commentId]];
         require(comment.author == msg.sender || owner() == msg.sender, "Wrong sender");
         require(comment.id == commentId, "Comment does not exist");
         comment.editTime = block.timestamp;
         comment.content = content;
     }
 
-    function removeComment(uint256 postId, uint256 commentId) public {
-        uint256 postIndex = _postIndex[postId];
-        uint256 index = _commentsMap[postId][commentId];
-        Comment memory comment = _posts[postIndex].comments[index];
+    function removeComment(uint256 commentId) public {
+        uint256 index = _commentIndex[_commentId];
+        Comment storage comment = _comments[index];
         require(comment.author == msg.sender || owner() == msg.sender, "Wrong sender");
         require(comment.id == commentId, "Comment does not exist");
-        if (index == _posts[postIndex].comments.length - 1) {
-            _posts[postIndex].comments.pop();
+        if (index == _comments.length - 1) {
+            _comments.pop();
+            _commentIndex[comment.id] = 0;
         } else {
-            _posts[postIndex].comments[index] = _posts[postIndex].comments[_posts[postIndex].comments.length - 1];
-            _commentsMap[postId][_posts[postIndex].comments[index].id] = index;
-            _posts[postIndex].comments.pop();
+            _comments[index] = _comments[_comments.length - 1];
+            _comments.pop();
+            _commentIndex[comment.id] = 0;
+            _commentIndex[_comments[index].id] = index;
         }
-        _commentsMap[postId][commentId] = 0;
     }
 
     function setLikeFee(uint256 fee) public onlyOwner() {
