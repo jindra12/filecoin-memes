@@ -343,25 +343,43 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         return (posts,0);
     }
 
-    function _filterCommentsBy(uint256 postId, uint256 kind, uint256 skip, uint256 limit) internal view returns (Comment[] memory) {
+    function _getNewestComments(uint256 postId, uint256 skip, uint256 limit) internal view returns(Comment[] memory,uint256) {
+        uint256[] memory ids = _posts[_postIndex[postId]].commentIds;
+        Comment[] memory comments = new Comment[](limit);
+        uint256 resultIndex = 0;
+        uint256 start = ids.length - 1;
+        if (skip >= start) {
+            return (comments,0);
+        }
+        for (uint256 i = start - skip; i >= 0; i--) {
+            comments[resultIndex] = _comments[_commentIndex[ids[i]]];
+            resultIndex++;
+            if (resultIndex == limit) {
+                return (comments,i);
+            }
+        }
+        return (comments,0);
+    }
+
+    function _filterCommentsBy(uint256 postId, uint256 kind, uint256 skip, uint256 limit) internal view returns (Comment[] memory,uint256) {
         Comment[] memory comments = new Comment[](limit);
         uint256 resultIndex = 0;
         uint256 timeUnit = kind == 1 ? _getDay() : kind == 2 ? _getWeek() : _getMonth(); 
         uint256[] memory ids = kind == 1 ? _commentToday[postId][timeUnit] : kind == 2 ? _commentWeek[postId][timeUnit] : _commentMonth[postId][timeUnit];
         uint256 start = ids.length - 1;
         if (skip >= start) {
-            return comments;
+            return (comments,0);
         }
         for (uint256 i = start - skip; i >= 0; i--) {
             uint256 commentIndex = _commentIndex[ids[i]];
             comments[resultIndex] = _comments[commentIndex];
             resultIndex++;
             if (resultIndex == limit) {
-                return comments;
+                return (comments,i);
             }
         }
          
-        return comments;
+        return (comments,0);
     }
 
     function _filterPostByTags(Post memory post, uint256[] memory tagHashes) internal view returns(bool) {
@@ -590,5 +608,14 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
 
     function getPost(uint256 postId) public view returns(Post memory) {
         return _posts[_postIndex[postId]];
+    }
+
+    function getComments(uint256 postId, uint256 filter, uint256 order, uint256 skip, uint256 limit) public view returns(Comment[] memory,uint256) {
+        (Comment[] memory comments,uint256 skipped) = filter == 0 ? _getNewestComments(postId, skip, limit) : _filterCommentsBy(postId, filter, skip, limit);
+        return (_mergeSortComments(comments, order),skipped);
+    }
+
+    function getComment(uint256 commentId) public view returns(Comment memory) {
+        return _comments[_commentIndex[commentId]];
     }
 }
