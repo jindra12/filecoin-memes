@@ -59,6 +59,8 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     mapping(uint256 => uint256[]) internal _postWeek;
     mapping(uint256 => uint256[]) internal _postMonth;
 
+    mapping(address => uint256[]) internal _postsByAuthor;
+
     mapping(uint256 => mapping(uint256 => uint256[])) internal _commentToday;
     mapping(uint256 => mapping(uint256 => uint256[])) internal _commentWeek;
     mapping(uint256 => mapping(uint256 => uint256[])) internal _commentMonth;
@@ -83,6 +85,8 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     uint256 internal _commentId = 1;
     uint256 internal _likeFee = 0;
     uint256 internal _likeFeeProfit = 0;
+
+    uint256 internal _giveUpLimit = 5000;
 
     function _addTag(Tag memory tag) internal {
         _tagNames[tag.hash] = tag.name;
@@ -277,21 +281,36 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         }
     }
 
+    function _getNewestByAuthor(address author) internal view returns(Post[] memory) {
+        uint256[] memory ids = _postsByAuthor[author];
+        Post[] memory posts = new Post[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) {
+            posts[i] = _posts[_postIndex[ids[i]]];
+        }
+        return posts;
+    }
+
     function _getNewestPosts(uint256 skip, uint256 limit, uint256[] memory tagHashes, address author) internal view returns (Post[] memory,uint256) {
+        Post[] memory viablePosts = author == address(0) ? _posts : _getNewestByAuthor(author);
         Post[] memory posts = new Post[](limit);
         uint256 resultIndex = 0;
-        uint256 start = _posts.length - 1;
+        uint256 start = viablePosts.length - 1;
+        uint256 giveUpCount = 0;
         if (skip >= start) {
             return (posts,0);
         }
         for (uint256 i = start - skip; i >= 0; i--) {
-            if (_filterPostByTags(_posts[i], tagHashes) && _filterPostByAuthor(_posts[i], author)) {
-                posts[resultIndex] = _posts[i];
+            if (_filterPostByTags(viablePosts[i], tagHashes) && _filterPostByAuthor(viablePosts[i], author)) {
+                posts[resultIndex] = viablePosts[i];
                 resultIndex++;
                 if (resultIndex == limit) {
                     return (posts,i);
                 }
             }
+            if (giveUpCount >= _giveUpLimit) {
+                return (posts,i);
+            }
+            giveUpCount++;
         }
         return (posts,0);
     }
@@ -302,6 +321,7 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         uint256 timeUnit = kind == 1 ? _getDay() : kind == 2 ? _getWeek() : _getMonth(); 
         uint256[] memory ids = kind == 1 ? _postToday[timeUnit] : kind == 2 ? _postWeek[timeUnit] : _postMonth[timeUnit];
         uint256 start = ids.length - 1;
+        uint256 giveUpCount = 0;
         if (skip >= start) {
             return (posts,0);
         }
@@ -314,13 +334,17 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
                     return (posts,i);
                 }
             }
+            if (giveUpCount >= _giveUpLimit) {
+                return (posts,i);
+            }
+            giveUpCount++;
         }
 
         return (posts,0);
     }
 
     function _filterCommentsBy(uint256 postId, uint256 kind, uint256 skip, uint256 limit) internal view returns (Comment[] memory) {
-        Comment[] memory comments;
+        Comment[] memory comments = new Comment[](limit);
         uint256 resultIndex = 0;
         uint256 timeUnit = kind == 1 ? _getDay() : kind == 2 ? _getWeek() : _getMonth(); 
         uint256[] memory ids = kind == 1 ? _commentToday[postId][timeUnit] : kind == 2 ? _commentWeek[postId][timeUnit] : _commentMonth[postId][timeUnit];
@@ -437,6 +461,8 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
             _posts[_posts.length - 1].tagIds.push(tag.hash);
         }
 
+        _postsByAuthor[msg.sender].push(_postId);
+
         _postId++;
     }
 
@@ -463,6 +489,17 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
             _postIndex[_posts[index].id] = index;
             _posts.pop();
         }
+
+        uint256[] memory authorIds = _postsByAuthor[post.author];
+        uint256[] memory nextIds = new uint256[](authorIds.length - 1);
+        uint256 nextIndex = 0;
+        for (uint256 i = 0; i < authorIds.length; i++) {
+            if (authorIds[i] != post.id) {
+                nextIds[nextIndex] = authorIds[i];
+                nextIndex++;
+            }
+        }
+        _postsByAuthor[post.author] = nextIds;
     }
 
     function addComment(string memory content, uint256 postId) public {
@@ -549,5 +586,9 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
     function getPosts(uint256 filter, uint256 order, uint256 skip, uint256 limit, uint256[] calldata tagHashes, address author) public view returns(Post[] memory,uint256) {
         (Post[] memory posts,uint256 skipped) = filter == 0 ? _getNewestPosts(skip, limit, tagHashes, author) : _filterPostsBy(filter, skip, limit, tagHashes, author);
         return (_mergeSortPosts(posts, order),skipped);
+    }
+
+    function getPost(uint256 postId) public view returns(Post memory) {
+        return _posts[_postIndex[postId]];
     }
 }
