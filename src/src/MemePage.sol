@@ -277,42 +277,46 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         }
     }
 
-    function _getNewestPosts(uint256 skip, uint256 limit) internal view returns (Post[] memory) {
+    function _getNewestPosts(uint256 skip, uint256 limit, uint256[] memory tagHashes, address author) internal view returns (Post[] memory,uint256) {
         Post[] memory posts = new Post[](limit);
         uint256 resultIndex = 0;
         uint256 start = _posts.length - 1;
         if (skip >= start) {
-            return posts;
+            return (posts,0);
         }
         for (uint256 i = start - skip; i >= 0; i--) {
-            posts[resultIndex] = _posts[i];
-            resultIndex++;
-            if (resultIndex == limit) {
-                return posts;
+            if (_filterPostByTags(_posts[i], tagHashes) && _filterPostByAuthor(_posts[i], author)) {
+                posts[resultIndex] = _posts[i];
+                resultIndex++;
+                if (resultIndex == limit) {
+                    return (posts,i);
+                }
             }
         }
-        return posts;
+        return (posts,0);
     }
 
-    function _filterPostsBy(uint256 kind, uint256 skip, uint256 limit) internal view returns (Post[] memory) {
+    function _filterPostsBy(uint256 kind, uint256 skip, uint256 limit, uint256[] memory tagHashes, address author) internal view returns (Post[] memory,uint256) {
         Post[] memory posts = new Post[](limit);
         uint256 resultIndex = 0;
         uint256 timeUnit = kind == 1 ? _getDay() : kind == 2 ? _getWeek() : _getMonth(); 
         uint256[] memory ids = kind == 1 ? _postToday[timeUnit] : kind == 2 ? _postWeek[timeUnit] : _postMonth[timeUnit];
         uint256 start = ids.length - 1;
         if (skip >= start) {
-            return posts;
+            return (posts,0);
         }
         for (uint256 i = start - skip; i >= 0; i--) {
             uint256 index = _postIndex[ids[i]];
-            posts[resultIndex] = _posts[index];
-            resultIndex++;
-            if (limit == resultIndex) {
-                return posts;
+            if (_filterPostByTags(_posts[index], tagHashes) && _filterPostByAuthor(_posts[index], author)) {
+                posts[resultIndex] = _posts[index];
+                resultIndex++;
+                if (limit == resultIndex) {
+                    return (posts,i);
+                }
             }
         }
 
-        return posts;
+        return (posts,0);
     }
 
     function _filterCommentsBy(uint256 postId, uint256 kind, uint256 skip, uint256 limit) internal view returns (Comment[] memory) {
@@ -336,24 +340,20 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         return comments;
     }
 
-    function _filterPostsByTags(Post[] memory posts, uint256 limit, uint256[] memory tagHashes, string[] memory tags) internal view returns (Post[] memory) {
-        require(tagHashes.length == tags.length && tagHashes.length > 0, "Invalid tags sent");
-        Post[] memory result = new Post[](limit);
-        uint256 resultIndex = 0;
-
-        for (uint256 i = 0; i < posts.length; i++) {
-            for (uint256 j = 0; j < tagHashes.length; j++) {
-                if (_postsByTag[tagHashes[j]][posts[i].id]) {
-                    result[resultIndex] = posts[i];
-                    resultIndex++;
-                    if (resultIndex == limit) {
-                        return result;
-                    }
-                }
+    function _filterPostByTags(Post memory post, uint256[] memory tagHashes) internal view returns(bool) {
+        if (tagHashes.length == 0) {
+            return true;
+        }
+        for (uint256 j = 0; j < tagHashes.length; j++) {
+            if (_postsByTag[tagHashes[j]][post.id]) {
+                return true;
             }
         }
+        return false;
+    }
 
-        return result;
+    function _filterPostByAuthor(Post memory post, address author) internal pure returns(bool) {
+        return author == address(0) || post.author == author;
     }
 
     constructor(uint256 likeFee, uint256 likeFeeProfit, ENS ens, string memory name, bytes32 addressReverseNode) {
@@ -546,7 +546,8 @@ contract MemePage is Ownable,MemePageStructs,MemePageEvents {
         return _authorsFees[msg.sender];
     }
 
-    function getPosts(uint256 filter, uint256 order, uint256 skip, uint256 limit) public view returns(Post[] memory) {
-        return _mergeSortPosts(filter == 0 ? _getNewestPosts(skip, limit) : _filterPostsBy(filter, skip, limit), order);
+    function getPosts(uint256 filter, uint256 order, uint256 skip, uint256 limit, uint256[] calldata tagHashes, address author) public view returns(Post[] memory,uint256) {
+        (Post[] memory posts,uint256 skipped) = filter == 0 ? _getNewestPosts(skip, limit, tagHashes, author) : _filterPostsBy(filter, skip, limit, tagHashes, author);
+        return (_mergeSortPosts(posts, order),skipped);
     }
 }
