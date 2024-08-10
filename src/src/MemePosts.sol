@@ -8,7 +8,7 @@ import {MemeStructs} from "./MemeStructs.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
 import {MemeTags} from "./MemeTags.sol";
 
-abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage,MemeTags {
+abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage {
     function _filterPostByTags(Post memory post, uint256[] memory tagHashes) internal view returns(bool) {
         if (tagHashes.length == 0) {
             return true;
@@ -83,8 +83,7 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         return (posts,0);
     }
 
-    function addPost(string memory title, string memory content, uint256[] memory tagHashes, string[] memory tags) public {
-        require(tagHashes.length == tags.length, "Invalid tags sent");
+    function _addPost(string memory title, string memory content) internal returns(uint256) {
         uint256 postId = _postId;
         _postIndex[_postId] = _posts.length;
         Post memory post;
@@ -99,18 +98,13 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         _postToday[MemeLibrary.getWeek()].push(_postId);
         _postToday[MemeLibrary.getMonth()].push(_postId);
 
-        for (uint256 i = 0; i < tagHashes.length; i++) {
-            Tag memory tag;
-            tag.name = tags[i];
-            tag.hash = tagHashes[i];
-            _addTag(tag);
-            _postsByTag[tag.hash][postId] = true;
-            _posts[_posts.length - 1].tagIds.push(tag.hash);
-        }
-
         _postsByAuthor[msg.sender].push(_postId);
 
+        uint256 currentId = _postId;
+
         _postId++;
+
+        return currentId;
     }
 
     function editPost(string memory title, string memory content, uint256 postId) public {

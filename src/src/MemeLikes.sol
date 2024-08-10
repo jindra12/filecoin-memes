@@ -3,10 +3,11 @@ pragma solidity ^0.8.13;
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {AccessControlEnumerable} from "../lib/openzeppelin-contracts/contracts/access/AccessControlEnumerable.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
-import {MemeTags} from "./MemeTags.sol";
-import {MemePayout} from "./MemePayout.sol";
+import {MemeEvents} from "./MemeEvents.sol";
+import {MemeStorage} from "./MemeStorage.sol";
+import {MemeStructs} from "./MemeStructs.sol";
 
-abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemePayout,MemeTags {
+abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage {
     function _removeLike(Likes storage like) internal {
         for (uint256 i = 0; i < like.likes.length; i++) {
             if (like.likes[i] == msg.sender) {
@@ -21,38 +22,20 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemePayout,MemeTa
         }
     }
 
-    function addLike(uint256 postId) public payable {
+    function _addLike(uint256 postId) internal {
         require(!_likesMap[postId][msg.sender], "Liked already");
-        require(msg.value == _likeFee, "Not enough value");
         Post storage post = _posts[_postIndex[postId]];
         post.likes.likes.push(msg.sender);
         _likesMap[postId][msg.sender] = true;
         post.likes.likesCount++;
-
-        for (uint256 i = 0; i < post.tagIds.length; i++) {
-            Tag memory tag;
-            tag.name = _tagNames[post.tagIds[i]];
-            tag.hash = post.tagIds[i];
-            _addTag(tag);
-        }
-
-        _authorsFees[post.author] += _likeFee - _likeFeeProfit;
-        _ownerFees += _likeFeeProfit;
     }
 
-    function addLike(uint256 postId, uint256 commentId) public payable {
+    function _addLike(uint256 postId, uint256 commentId) internal {
         require(!_likesCommentsMap[postId][commentId][msg.sender], "Liked already");
-        require(msg.value == _likeFee, "Not enough value");
         Comment storage comment = _comments[_commentIndex[commentId]];
         comment.likes.likes.push(msg.sender);
         _likesCommentsMap[postId][commentId][msg.sender] = true;
         comment.likes.likesCount++;
-
-        _authorsFees[comment.author] += _likeFee - _likeFeeProfit - _likeAdminProfit;
-        _ownerFees += _likeFeeProfit;
-
-        address adminToReward = _getAndMoveAdminRewarded();
-        _adminFees[adminToReward] += _likeAdminProfit;
     }
 
     function removeLike(uint256 postId) public {
@@ -78,10 +61,10 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemePayout,MemeTa
     }
 
     function getAdminFee() public view returns(uint256) {
-        return _adminFees;
+        return _likeAdminProfit;
     }
 
-    function setAdminFee(uint256 fee) public onlyOwner() returns(uint256) {
+    function setAdminFee(uint256 fee) public onlyOwner() {
         require(_likeFee > _likeFeeProfit + fee, "Invalid fee for likes");
         _likeAdminProfit = fee;
     }

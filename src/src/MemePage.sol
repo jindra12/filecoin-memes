@@ -7,8 +7,10 @@ import {AccessControlEnumerable} from "../lib/openzeppelin-contracts/contracts/a
 import {MemePosts} from "./MemePosts.sol";
 import {MemeComments} from "./MemeComments.sol";
 import {MemeLikes} from "./MemeLikes.sol";
+import {MemeTags} from "./MemeTags.sol";
+import {MemePayout} from "./MemePayout.sol";
 
-contract MemePage is MemeLikes,MemePosts,MemeComments {
+contract MemePage is MemeLikes,MemePosts,MemeComments,MemeTags,MemePayout {
     constructor(uint256 likeFee, uint256 likeFeeProfit, uint256 adminProfit, ENS ens, string memory name, bytes32 addressReverseNode) {
         require(likeFee > likeFeeProfit, "Invalid fees for likes");
         _likeFee = likeFee;
@@ -24,5 +26,25 @@ contract MemePage is MemeLikes,MemePosts,MemeComments {
             reverseRegistrar.claim(address(this));
             reverseRegistrar.setName(name);
         }
+    }
+
+    function addLike(uint256 postId) public payable {
+        require(msg.value == _likeFee, "Not enough value");
+        
+        _addLike(postId);
+        _updateTags(postId);
+        _distributeRewardPost(postId);
+    }
+
+    function addLike(uint256 postId, uint256 commentId) public payable {
+        require(msg.value == _likeFee, "Not enough value");
+        _addLike(postId, commentId);
+        _distributeRewardComment(commentId);
+    }
+
+    function addPost(string calldata title, string calldata content, string[] calldata tags) public returns(uint256) {
+        uint256 postId = _addPost(title, content);
+        _createTags(postId, tags);
+        return postId;
     }
 }

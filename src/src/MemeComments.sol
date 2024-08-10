@@ -47,7 +47,7 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
         return (comments,0);
     }
 
-    function addComment(string memory content, uint256 postId) public {
+    function addComment(string memory content, uint256 postId) public returns(uint256) {
         Comment memory comment;
         comment.id = _commentId;
         comment.author = msg.sender;
@@ -61,7 +61,11 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
         _commentToday[MemeLibrary.getWeek()][postId].push(_commentId);
         _commentToday[MemeLibrary.getMonth()][postId].push(_commentId);
 
+        uint256 currentId = _commentId;
+
         _commentId++;
+
+        return currentId;
     }
 
     function editComment(string memory content, uint256 commentId) public {

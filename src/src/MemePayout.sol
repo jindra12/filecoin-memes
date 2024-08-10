@@ -8,11 +8,26 @@ import {MemeStructs} from "./MemeStructs.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
 
 abstract contract MemePayout is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage {
+    function _distributeReward(address author) internal {
+        _authorsFees[author] += _likeFee - _likeFeeProfit - _likeAdminProfit;
+        _ownerFees += _likeFeeProfit;
+        address adminToReward = _getAndMoveAdminRewarded();
+        _adminFees[adminToReward] += _likeAdminProfit;
+    }
+
+    function _distributeRewardPost(uint256 postId) internal {
+        _distributeReward(_posts[_postIndex[postId]].author);
+    }
+
+    function _distributeRewardComment(uint256 commentId) internal {
+        _distributeReward(_comments[_commentIndex[commentId]].author);
+    }
+
     function _getAndMoveAdminRewarded() internal returns(address) {
-        uint256 adminCount = getRoleMemberCount();
-        address current = _currentAdminRewardIndex;
+        uint256 adminCount = getRoleMemberCount(MOD_ROLE);
+        uint256 current = _currentAdminRewardIndex;
         _currentAdminRewardIndex = (_currentAdminRewardIndex + 1) % adminCount;
-        return current;
+        return getRoleMember(MOD_ROLE, current);
     }
 
     function withdrawOwner() public onlyOwner() {

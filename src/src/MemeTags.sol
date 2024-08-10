@@ -28,4 +28,25 @@ abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
             }
         }
     }
+
+    function _createTags(uint256 postId, string[] memory tags) internal {
+        for (uint256 i = 0; i < tags.length; i++) {
+            Tag memory tag;
+            tag.name = tags[i];
+            tag.hash = uint256(keccak256(bytes(tags[i])));
+            _addTag(tag);
+            _postsByTag[tag.hash][postId] = true;
+            _posts[_posts.length - 1].tagIds.push(tag.hash);
+        }
+    }
+
+    function _updateTags(uint256 postId) internal {
+        Post storage post = _posts[_postIndex[postId]];
+        for (uint256 i = 0; i < post.tagIds.length; i++) {
+            Tag memory tag;
+            tag.name = _tagNames[post.tagIds[i]];
+            tag.hash = post.tagIds[i];
+            _addTag(tag);
+        }
+    }
 }
