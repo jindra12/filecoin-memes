@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import {ReverseRegistrar} from "../lib/ens-contracts/contracts/reverseRegistrar/ReverseRegistrar.sol";
-import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
+import {AccessControlEnumerable} from "../lib/openzeppelin-contracts/contracts/access/AccessControlEnumerable.sol";
 import {MemeStorage} from "./MemeStorage.sol";
 import {MemeEvents} from "./MemeEvents.sol";
 import {MemeStructs} from "./MemeStructs.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
 
-abstract contract MemeComments is Ownable,MemeStructs,MemeEvents,MemeStorage {
+abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage {
     function _getNewestComments(uint256 postId, uint256 skip, uint256 limit) internal view returns(Comment[] memory,uint256) {
         uint256[] memory ids = _posts[_postIndex[postId]].commentIds;
         Comment[] memory comments = new Comment[](limit);

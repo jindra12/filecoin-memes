@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import {ReverseRegistrar} from "../lib/ens-contracts/contracts/reverseRegistrar/ReverseRegistrar.sol";
-import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
-import {MemeStorage} from "./MemeStorage.sol";
-import {MemeEvents} from "./MemeEvents.sol";
-import {MemeStructs} from "./MemeStructs.sol";
+import {AccessControlEnumerable} from "../lib/openzeppelin-contracts/contracts/access/AccessControlEnumerable.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
 import {MemeTags} from "./MemeTags.sol";
+import {MemePayout} from "./MemePayout.sol";
 
-abstract contract MemeLikes is Ownable,MemeStructs,MemeEvents,MemeStorage,MemeTags {
+abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemePayout,MemeTags {
     function _removeLike(Likes storage like) internal {
         for (uint256 i = 0; i < like.likes.length; i++) {
             if (like.likes[i] == msg.sender) {
@@ -51,8 +48,11 @@ abstract contract MemeLikes is Ownable,MemeStructs,MemeEvents,MemeStorage,MemeTa
         _likesCommentsMap[postId][commentId][msg.sender] = true;
         comment.likes.likesCount++;
 
-        _authorsFees[comment.author] += _likeFee - _likeFeeProfit;
+        _authorsFees[comment.author] += _likeFee - _likeFeeProfit - _likeAdminProfit;
         _ownerFees += _likeFeeProfit;
+
+        address adminToReward = _getAndMoveAdminRewarded();
+        _adminFees[adminToReward] += _likeAdminProfit;
     }
 
     function removeLike(uint256 postId) public {
@@ -77,13 +77,22 @@ abstract contract MemeLikes is Ownable,MemeStructs,MemeEvents,MemeStorage,MemeTa
         return _likeFeeProfit;
     }
 
+    function getAdminFee() public view returns(uint256) {
+        return _adminFees;
+    }
+
+    function setAdminFee(uint256 fee) public onlyOwner() returns(uint256) {
+        require(_likeFee > _likeFeeProfit + fee, "Invalid fee for likes");
+        _likeAdminProfit = fee;
+    }
+
     function setLikeFee(uint256 fee) public onlyOwner() {
-        require(fee > _likeFeeProfit, "Invalid fees for likes");
+        require(fee > _likeFeeProfit + _likeAdminProfit, "Invalid fees for likes");
         _likeFee = fee;
     }
 
     function setLikeFeeProfit(uint256 fee) public onlyOwner() {
-        require(_likeFee > fee, "Invalid fees for likes");
+        require(_likeFee > fee + _likeAdminProfit, "Invalid fees for likes");
         _likeFeeProfit = fee;
     }
 }

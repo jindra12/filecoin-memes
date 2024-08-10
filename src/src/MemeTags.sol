@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import {ReverseRegistrar} from "../lib/ens-contracts/contracts/reverseRegistrar/ReverseRegistrar.sol";
-import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
 import {MemeStorage} from "./MemeStorage.sol";
 import {MemeEvents} from "./MemeEvents.sol";
 import {MemeStructs} from "./MemeStructs.sol";
-import {MemeLibrary} from "./MemeLibrary.sol";
 
 abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
     function _addTag(Tag memory tag) internal {

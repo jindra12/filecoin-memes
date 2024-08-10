@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import {ReverseRegistrar} from "../lib/ens-contracts/contracts/reverseRegistrar/ReverseRegistrar.sol";
-import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
+import {AccessControlEnumerable} from "../lib/openzeppelin-contracts/contracts/access/AccessControlEnumerable.sol";
 import {MemeStorage} from "./MemeStorage.sol";
 import {MemeEvents} from "./MemeEvents.sol";
 import {MemeStructs} from "./MemeStructs.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
 import {MemeTags} from "./MemeTags.sol";
 
-abstract contract MemePosts is Ownable,MemeStructs,MemeEvents,MemeStorage,MemeTags {
+abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage,MemeTags {
     function _filterPostByTags(Post memory post, uint256[] memory tagHashes) internal view returns(bool) {
         if (tagHashes.length == 0) {
             return true;
