@@ -47,12 +47,14 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
         return (comments,0);
     }
 
-    function addComment(string memory content, uint256 postId) public returns(uint256) {
+    function addComment(string memory content, uint256 postId, uint256 replyToId, ReplyToType replyToType) public returns(uint256) {
         Comment memory comment;
         comment.id = _commentId;
         comment.author = msg.sender;
         comment.time = block.timestamp;
         comment.content = content;
+        comment.replyTo.id = replyToId;
+        comment.replyTo.replyType = replyToType;
 
         _commentIndex[_commentId] = _comments.length;
         _comments.push(comment);
@@ -68,12 +70,14 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
         return currentId;
     }
 
-    function editComment(string memory content, uint256 commentId) public {
+    function editComment(string memory content, uint256 commentId, uint256 replyToId, ReplyToType replyToType) public {
         Comment storage comment = _comments[_commentIndex[_commentId]];
         require(comment.author == msg.sender || owner() == msg.sender || hasRole(MOD_ROLE, msg.sender), "Wrong sender");
         require(comment.id == commentId, "Comment does not exist");
         comment.editTime = block.timestamp;
         comment.content = content;
+        comment.replyTo.id = replyToId;
+        comment.replyTo.replyType = replyToType;
     }
 
     function removeComment(uint256 commentId) public {

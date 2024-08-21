@@ -42,8 +42,8 @@ contract MemePage is MemeLikes,MemePosts,MemeComments,MemeTags,MemePayout {
         _distributeRewardComment(commentId);
     }
 
-    function addPost(string calldata title, string calldata content, string[] calldata tags) public returns(uint256) {
-        uint256 postId = _addPost(title, content);
+    function addPost(string calldata title, string calldata content, uint256 replyToId, ReplyToType replyToType, string[] calldata tags) public returns(uint256) {
+        uint256 postId = _addPost(title, content, replyToId, replyToType);
         _createTags(postId, tags);
         return postId;
     }

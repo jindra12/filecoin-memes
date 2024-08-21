@@ -83,7 +83,7 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         return (posts,0);
     }
 
-    function _addPost(string memory title, string memory content) internal returns(uint256) {
+    function _addPost(string memory title, string memory content, uint256 replyToId, ReplyToType replyToType) internal returns(uint256) {
         uint256 postId = _postId;
         _postIndex[_postId] = _posts.length;
         Post memory post;
@@ -92,6 +92,8 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         post.time = block.timestamp;
         post.title = title;
         post.content = content;
+        post.replyTo.id = replyToId;
+        post.replyTo.replyType = replyToType;
         _posts.push(post);
 
         _postToday[MemeLibrary.getDay()].push(_postId);
@@ -107,14 +109,15 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         return currentId;
     }
 
-    function editPost(string memory title, string memory content, uint256 postId, uint256 replyTo) public {
+    function editPost(string memory title, string memory content, uint256 postId, uint256 replyToId, ReplyToType replyToType) public {
         Post storage post = _posts[_postIndex[postId]];
         require(post.author == msg.sender || owner() == msg.sender || hasRole(MOD_ROLE, msg.sender), "Wrong sender");
         require(post.id == postId, "Post does not exist");
         post.content = content;
         post.title = title;
         post.editTime = block.timestamp;
-        post.replyTo = replyTo;
+        post.replyTo.id = replyToId;
+        post.replyTo.replyType = replyToType;
     }
 
     function removePost(uint256 postId) public {

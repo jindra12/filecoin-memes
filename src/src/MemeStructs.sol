@@ -12,7 +12,8 @@ interface MemeStructs {
     
     enum ReplyToType {
         POST,
-        COMMENT
+        COMMENT,
+        NONE
     }
 
     enum SortType {
@@ -40,7 +41,7 @@ interface MemeStructs {
         uint256 time;
         uint256 editTime;
         Likes likes;
-        uint256 replyTo;
+        ReplyTo replyTo;
     }
     
     struct Post {
@@ -53,7 +54,7 @@ interface MemeStructs {
         Likes likes;
         uint256[] commentIds;
         uint256[] tagIds;
-        uint256 replyTo;
+        ReplyTo replyTo;
     }
 
     struct Tag {
