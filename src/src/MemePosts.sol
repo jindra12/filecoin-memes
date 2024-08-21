@@ -55,11 +55,11 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         return (posts,0);
     }
 
-    function _filterPostsBy(uint256 kind, uint256 skip, uint256 limit, uint256[] memory tagHashes, address author) internal view returns (Post[] memory,uint256) {
+    function _filterPostsBy(FilterType kind, uint256 skip, uint256 limit, uint256[] memory tagHashes, address author) internal view returns (Post[] memory,uint256) {
         Post[] memory posts = new Post[](limit);
         uint256 resultIndex = 0;
-        uint256 timeUnit = kind == 1 ? MemeLibrary.getDay() : kind == 2 ? MemeLibrary.getWeek() : MemeLibrary.getMonth(); 
-        uint256[] memory ids = kind == 1 ? _postToday[timeUnit] : kind == 2 ? _postWeek[timeUnit] : _postMonth[timeUnit];
+        uint256 timeUnit = kind == FilterType.DAY ? MemeLibrary.getDay() : kind == FilterType.WEEK ? MemeLibrary.getWeek() : MemeLibrary.getMonth(); 
+        uint256[] memory ids = kind == FilterType.DAY ? _postToday[timeUnit] : kind == FilterType.WEEK ? _postWeek[timeUnit] : _postMonth[timeUnit];
         uint256 start = ids.length - 1;
         uint256 giveUpCount = 0;
         if (skip >= start) {
@@ -107,19 +107,20 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         return currentId;
     }
 
-    function editPost(string memory title, string memory content, uint256 postId) public {
+    function editPost(string memory title, string memory content, uint256 postId, uint256 replyTo) public {
         Post storage post = _posts[_postIndex[postId]];
-        require(post.author == msg.sender || owner() == msg.sender, "Wrong sender");
+        require(post.author == msg.sender || owner() == msg.sender || hasRole(MOD_ROLE, msg.sender), "Wrong sender");
         require(post.id == postId, "Post does not exist");
         post.content = content;
         post.title = title;
         post.editTime = block.timestamp;
+        post.replyTo = replyTo;
     }
 
     function removePost(uint256 postId) public {
         uint256 index = _postIndex[postId];
         Post memory post = _posts[index];
-        require(post.author == msg.sender || owner() == msg.sender);
+        require(post.author == msg.sender || owner() == msg.sender || hasRole(MOD_ROLE, msg.sender), "Wrong sender");
         require(post.id == postId, "Post does not exist");
         if (index == _posts.length - 1) {
             _postIndex[postId] = 0;
@@ -143,4 +144,12 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         _postsByAuthor[post.author] = nextIds;
     }
 
+    function getPosts(FilterType filter, SortType order, uint256 skip, uint256 limit, uint256[] calldata tagHashes, address author) public view returns(Post[] memory,uint256) {
+        (Post[] memory posts,uint256 skipped) = filter == FilterType.LATEST ? _getNewestPosts(skip, limit, tagHashes, author) : _filterPostsBy(filter, skip, limit, tagHashes, author);
+        return (MemeLibrary.mergeSortPosts(posts, order),skipped);
+    }
+
+    function getPost(uint256 postId) public view returns(Post memory) {
+        return _posts[_postIndex[postId]];
+    }
 }

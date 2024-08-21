@@ -30,17 +30,17 @@ library MemeLibrary {
         return b.likes.likesCount >= a.likes.likesCount;
     }
 
-    function comparePosts(MemeStructs.Post memory a, MemeStructs.Post memory b, uint256 kind) internal pure returns(bool) {
-        if (kind == 1) {
+    function comparePosts(MemeStructs.Post memory a, MemeStructs.Post memory b, MemeStructs.SortType kind) internal pure returns(bool) {
+        if (kind == MemeStructs.SortType.TIME) {
             return comparePostsByTime(a, b);
-        } else if (kind == 2) {
+        } else if (kind == MemeStructs.SortType.HOT) {
             return comparePostsByHot(a, b);
         } else {
             return comparePostsByLike(a, b);
         }
     }
 
-    function addSortedPosts(MemeStructs.Post[] memory aS, MemeStructs.Post[] memory bS, uint256 kind) internal pure returns(MemeStructs.Post[] memory) {
+    function addSortedPosts(MemeStructs.Post[] memory aS, MemeStructs.Post[] memory bS, MemeStructs.SortType kind) internal pure returns(MemeStructs.Post[] memory) {
         uint256 asIndex = 0;
         uint256 bsIndex = 0;
         MemeStructs.Post[] memory result = new MemeStructs.Post[](aS.length + bS.length);
@@ -79,7 +79,7 @@ library MemeLibrary {
         return sliced;
     }
 
-    function mergeSortPosts(MemeStructs.Post[] memory posts, uint256 kind) internal pure returns(MemeStructs.Post[] memory) {
+    function mergeSortPosts(MemeStructs.Post[] memory posts, MemeStructs.SortType kind) internal pure returns(MemeStructs.Post[] memory) {
         if (posts.length == 1) {
             return posts;
         }
@@ -90,7 +90,7 @@ library MemeLibrary {
         return addSortedPosts(mergeSortPosts(first, kind), mergeSortPosts(second, kind), kind);
     }
 
-    function addSortedComments(MemeStructs.Comment[] memory aS, MemeStructs.Comment[] memory bS, uint256 kind) internal pure returns(MemeStructs.Comment[] memory) {
+    function addSortedComments(MemeStructs.Comment[] memory aS, MemeStructs.Comment[] memory bS, MemeStructs.SortType kind) internal pure returns(MemeStructs.Comment[] memory) {
         uint256 asIndex = 0;
         uint256 bsIndex = 0;
         MemeStructs.Comment[] memory result = new MemeStructs.Comment[](aS.length + bS.length);
@@ -129,7 +129,7 @@ library MemeLibrary {
         return sliced;
     }
 
-    function mergeSortComments(MemeStructs.Comment[] memory comments, uint256 kind) internal pure returns(MemeStructs.Comment[] memory) {
+    function mergeSortComments(MemeStructs.Comment[] memory comments, MemeStructs.SortType kind) internal pure returns(MemeStructs.Comment[] memory) {
         if (comments.length == 1) {
             return comments;
         }
@@ -152,10 +152,10 @@ library MemeLibrary {
         return b.likes.likesCount >= a.likes.likesCount;
     }
 
-    function compareComments(MemeStructs.Comment memory a, MemeStructs.Comment memory b, uint256 kind) internal pure returns(bool) {
-        if (kind == 1) {
+    function compareComments(MemeStructs.Comment memory a, MemeStructs.Comment memory b, MemeStructs.SortType kind) internal pure returns(bool) {
+        if (kind == MemeStructs.SortType.TIME) {
             return compareCommentsByTime(a, b);
-        } else if (kind == 2) {
+        } else if (kind == MemeStructs.SortType.HOT) {
             return compareCommentsByHot(a, b);
         } else {
             return compareCommentsByLike(a, b);

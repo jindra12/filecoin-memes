@@ -10,6 +10,29 @@ interface MemeStructs {
         address[] likes;
     }
     
+    enum ReplyToType {
+        POST,
+        COMMENT
+    }
+
+    enum SortType {
+        TIME,
+        HOT,
+        LIKE
+    }
+
+    enum FilterType {
+        DAY,
+        WEEK,
+        MONTH,
+        LATEST
+    }
+
+    struct ReplyTo {
+        ReplyToType replyType;
+        uint256 id;
+    }
+
     struct Comment {
         uint256 id;
         address author;
@@ -17,6 +40,7 @@ interface MemeStructs {
         uint256 time;
         uint256 editTime;
         Likes likes;
+        uint256 replyTo;
     }
     
     struct Post {
@@ -29,6 +53,7 @@ interface MemeStructs {
         Likes likes;
         uint256[] commentIds;
         uint256[] tagIds;
+        uint256 replyTo;
     }
 
     struct Tag {
