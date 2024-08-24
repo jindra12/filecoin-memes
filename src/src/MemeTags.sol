@@ -37,6 +37,7 @@ abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
             _addTag(tag);
             _postsByTag[tag.hash][postId] = true;
             _posts[_posts.length - 1].tagIds.push(tag.hash);
+            emit TagAdded(tag.name);
         }
     }
 

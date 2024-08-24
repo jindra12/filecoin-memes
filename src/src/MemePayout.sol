@@ -34,6 +34,7 @@ abstract contract MemePayout is Ownable,AccessControlEnumerable,MemeStructs,Meme
         require(_ownerFees > 0, "Nothing to withdraw");
         (bool ok,) = owner().call{ value: _ownerFees }("");
         require(ok, "Transaction failed");
+        emit WithdrawOwner(_ownerFees);
         _ownerFees = 0;
     }
 
@@ -41,6 +42,7 @@ abstract contract MemePayout is Ownable,AccessControlEnumerable,MemeStructs,Meme
         require(_authorsFees[msg.sender] > 0, "Nothing to withdraw");
         (bool ok,) = msg.sender.call{ value: _authorsFees[msg.sender] }("");
         require(ok, "Transaction failed");
+        emit WithdrawAuthor(_authorsFees[msg.sender], msg.sender);
         _authorsFees[msg.sender] = 0;
     }
 
@@ -48,6 +50,7 @@ abstract contract MemePayout is Ownable,AccessControlEnumerable,MemeStructs,Meme
         require(_adminFees[msg.sender] > 0, "Nothing to withdraw");
         (bool ok,) = msg.sender.call{ value: _adminFees[msg.sender] }("");
         require(ok, "Transaction failed");
+        emit WithdrawAdmin(_adminFees[msg.sender], msg.sender);
         _adminFees[msg.sender] = 0;
     }
 

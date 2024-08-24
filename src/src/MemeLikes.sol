@@ -28,6 +28,7 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         post.likes.likes.push(msg.sender);
         _likesMap[postId][msg.sender] = true;
         post.likes.likesCount++;
+        emit AddLike(postId);
     }
 
     function _addLike(uint256 postId, uint256 commentId) internal {
@@ -36,6 +37,7 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         comment.likes.likes.push(msg.sender);
         _likesCommentsMap[postId][commentId][msg.sender] = true;
         comment.likes.likesCount++;
+        emit AddLikeComment(postId, commentId);
     }
 
     function removeLike(uint256 postId) public {
@@ -43,6 +45,7 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         require(_likesMap[postId][msg.sender], "Not liked before");
         _likesMap[postId][msg.sender] = false;
         _removeLike(post.likes);
+        emit RemoveLike(postId);
     }
 
     function removeLike(uint256 postId, uint256 commentId) public {
@@ -50,6 +53,7 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         require(_likesCommentsMap[postId][commentId][msg.sender], "Not liked before");
         _likesCommentsMap[postId][commentId][msg.sender] = false;
         _removeLike(comment.likes);
+        emit RemoveLikeComment(postId, commentId);
     }
 
     function getLikeFee() public view returns(uint256) {
@@ -67,15 +71,18 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeE
     function setAdminFee(uint256 fee) public onlyOwner() {
         require(_likeFee > _likeFeeProfit + fee, "Invalid fee for likes");
         _likeAdminProfit = fee;
+        emit SetAdminLikeFee(fee);
     }
 
     function setLikeFee(uint256 fee) public onlyOwner() {
         require(fee > _likeFeeProfit + _likeAdminProfit, "Invalid fees for likes");
         _likeFee = fee;
+        emit SetLikeFee(fee);
     }
 
     function setLikeFeeProfit(uint256 fee) public onlyOwner() {
         require(_likeFee > fee + _likeAdminProfit, "Invalid fees for likes");
         _likeFeeProfit = fee;
+        emit SetLikeFeeProfit(fee);
     }
 }

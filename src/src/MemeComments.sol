@@ -67,6 +67,8 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
 
         _commentId++;
 
+        emit CommentAdded(postId, currentId);
+
         return currentId;
     }
 
@@ -78,6 +80,7 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
         comment.content = content;
         comment.replyTo.id = replyToId;
         comment.replyTo.replyType = replyToType;
+        emit CommentEdited(commentId);
     }
 
     function removeComment(uint256 commentId) public {
@@ -94,6 +97,7 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
             _commentIndex[comment.id] = 0;
             _commentIndex[_comments[index].id] = index;
         }
+        emit CommentRemoved(commentId, msg.sender);
     }
 
     function getComment(uint256 commentId) public view returns(Comment memory) {

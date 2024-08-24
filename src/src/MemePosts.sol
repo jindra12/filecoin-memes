@@ -106,6 +106,8 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
 
         _postId++;
 
+        emit PostAdded(currentId, title);
+
         return currentId;
     }
 
@@ -118,6 +120,7 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         post.editTime = block.timestamp;
         post.replyTo.id = replyToId;
         post.replyTo.replyType = replyToType;
+        emit PostEdited(postId, title);
     }
 
     function removePost(uint256 postId) public {
@@ -145,6 +148,7 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
             }
         }
         _postsByAuthor[post.author] = nextIds;
+        emit PostRemoved(postId, post.title, msg.sender);
     }
 
     function getPosts(FilterType filter, SortType order, uint256 skip, uint256 limit, uint256[] calldata tagHashes, address author) public view returns(Post[] memory,uint256) {

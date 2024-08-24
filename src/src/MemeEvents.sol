@@ -7,11 +7,19 @@ import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
 interface MemeEvents {
     event AddLike(uint256 indexed postId);
     event AddLikeComment(uint256 indexed postId, uint256 indexed commentId);
+    event RemoveLike(uint256 indexed postId);
+    event RemoveLikeComment(uint256 indexed postId, uint256 indexed commentId);
+    event SetAdminLikeFee(uint256 indexed amount);
+    event SetLikeFee(uint256 indexed amount);
+    event SetLikeFeeProfit(uint indexed amount);
     event PostAdded(uint256 indexed postId, string indexed title);
     event PostEdited(uint256 indexed postId, string indexed title);
-    event PostDeleted(uint256 indexed postId, string indexed title);
-    event CommentAdded(uint256 indexed postId, string indexed title);
-    event CommentEdited(uint256 indexed postId, string indexed title);
-    event CommentDeleted(uint256 indexed postId, string indexed title);
+    event PostRemoved(uint256 indexed postId, string indexed title, address indexed by);
+    event CommentAdded(uint256 indexed postId, uint256 indexed commentId);
+    event CommentEdited(uint256 indexed commentId);
+    event CommentRemoved(uint256 indexed commentId, address indexed by);
     event TagAdded(string indexed name);
+    event WithdrawOwner(uint256 indexed amount);
+    event WithdrawAuthor(uint256 indexed amount, address indexed author);
+    event WithdrawAdmin(uint256 indexed amount, address indexed admin);
 }
