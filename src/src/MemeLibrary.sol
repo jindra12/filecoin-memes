@@ -22,8 +22,16 @@ library MemeLibrary {
         return b.time >= a.time;
     }
 
+    function multiplyProtectOverflow(uint256 a, uint256 b) internal pure returns(uint256) {
+        uint256 result = a * b;
+        if (result / b != a) {
+            return type(uint256).max;
+        }
+        return result;
+    }
+
     function comparePostsByHot(MemeStructs.Post memory a, MemeStructs.Post memory b) internal pure returns(bool) {
-        return (b.time * b.likes.likesCount) >= (a.time * a.likes.likesCount);
+        return multiplyProtectOverflow(b.time, b.likes.likesCount) >= multiplyProtectOverflow(a.time, a.likes.likesCount);
     }
 
     function comparePostsByLike(MemeStructs.Post memory a, MemeStructs.Post memory b) internal pure returns(bool) {
