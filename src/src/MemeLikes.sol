@@ -56,6 +56,14 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         emit RemoveLikeComment(postId, commentId);
     }
 
+    function getLiked(uint256 postId) public view returns(bool) {
+        return _likesMap[postId][msg.sender];
+    }
+
+    function getLikedComment(uint256 postId, uint256 commentId) public view returns(bool) {
+        return _likesCommentsMap[postId][commentId][msg.sender];
+    }
+
     function getLikeFee() public view returns(uint256) {
         return _likeFee;
     }
