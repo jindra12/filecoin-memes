@@ -8,7 +8,6 @@ import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
 import {TestLibrary} from "./TestLibrary.sol";
 
 contract MemeLikesTest is Test,MemeLikes {
-    MemeLikes public memeLikes;
     address[] public accounts;
     uint256 _accountCount = 10;
 
@@ -17,6 +16,12 @@ contract MemeLikesTest is Test,MemeLikes {
             (address acc,) = TestLibrary.makeAccount(vm, uint32(i), 50);
             accounts[i] = acc;
         }
+        _postIndex[1] = 0;
+        Post memory post;
+        _posts[0] = post;
+        _commentIndex[1] = 0;
+        Comment memory comment;
+        _comments[0] = comment;
     }
 
     function testRemoveLike() public {

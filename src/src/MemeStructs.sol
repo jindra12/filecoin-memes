@@ -7,7 +7,6 @@ import {ENS} from "../lib/ens-contracts/contracts/registry/ENS.sol";
 interface MemeStructs {
     struct Likes {
         uint256 likesCount;
-        address[] likes;
     }
     
     enum ReplyToType {

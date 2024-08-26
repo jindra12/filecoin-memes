@@ -8,51 +8,31 @@ import {MemeStorage} from "./MemeStorage.sol";
 import {MemeStructs} from "./MemeStructs.sol";
 
 abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage {
-    function _removeLike(Likes storage like) internal {
-        for (uint256 i = 0; i < like.likes.length; i++) {
-            if (like.likes[i] == msg.sender) {
-                like.likesCount--;
-                if (i == like.likes.length - 1) {
-                    like.likes.pop();
-                } else {
-                    like.likes[i] = like.likes[like.likes.length - 1];
-                    like.likes.pop();
-                }
-            }
-        }
-    }
-
     function _addLike(uint256 postId) internal {
         require(!_likesMap[postId][msg.sender], "Liked already");
-        Post storage post = _posts[_postIndex[postId]];
-        post.likes.likes.push(msg.sender);
         _likesMap[postId][msg.sender] = true;
-        post.likes.likesCount++;
+        _posts[_postIndex[postId]].likes.likesCount++;
         emit AddLike(postId);
     }
 
     function _addLike(uint256 postId, uint256 commentId) internal {
         require(!_likesCommentsMap[postId][commentId][msg.sender], "Liked already");
-        Comment storage comment = _comments[_commentIndex[commentId]];
-        comment.likes.likes.push(msg.sender);
         _likesCommentsMap[postId][commentId][msg.sender] = true;
-        comment.likes.likesCount++;
+        _comments[_commentIndex[commentId]].likes.likesCount++;
         emit AddLikeComment(postId, commentId);
     }
 
     function removeLike(uint256 postId) public {
-        Post storage post = _posts[_postIndex[postId]];
         require(_likesMap[postId][msg.sender], "Not liked before");
         _likesMap[postId][msg.sender] = false;
-        _removeLike(post.likes);
+        _posts[_postIndex[postId]].likes.likesCount--;
         emit RemoveLike(postId);
     }
 
     function removeLike(uint256 postId, uint256 commentId) public {
-        Comment storage comment = _comments[_commentIndex[commentId]];
         require(_likesCommentsMap[postId][commentId][msg.sender], "Not liked before");
         _likesCommentsMap[postId][commentId][msg.sender] = false;
-        _removeLike(comment.likes);
+        _comments[_commentIndex[commentId]].likes.likesCount--;
         emit RemoveLikeComment(postId, commentId);
     }
 

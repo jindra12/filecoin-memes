@@ -7,12 +7,12 @@ import {MemeLibrary} from "../src/MemeLibrary.sol";
 import {TestLibrary} from "./TestLibrary.sol";
 
 contract MemeLibraryTest is Test {
-    MemeStructs.Post[] posts;
-    MemeStructs.Comment[] comments;
+    MemeStructs.Post[] public posts;
+    MemeStructs.Comment[] public comments;
 
     function setUp() public {
-        posts = new MemeStructs.Post[](0);
-        comments = new MemeStructs.Comment[](0);
+        delete posts;
+        delete comments;
     }
 
     function testGetDay() public {

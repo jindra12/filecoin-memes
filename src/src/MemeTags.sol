@@ -6,14 +6,30 @@ import {MemeEvents} from "./MemeEvents.sol";
 import {MemeStructs} from "./MemeStructs.sol";
 
 abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
-    function _addTag(Tag memory tag) internal {
-        _tagNames[tag.hash] = tag.name;
-        _tagPopularities[tag.hash] += 1;
-        tag.popularity = _tagPopularities[tag.hash];
-
-        if (_bestTags.length < _bestTagsLimit) {
-            _bestTags.push(tag);
-        } else {
+    function _removeWorstBestTag() internal {
+        if (_bestTags.length != 0) {
+            uint256 smallestPop = _bestTags[0].popularity;
+            for (uint256 i = 1; i < _bestTags.length; i++) {
+                if (smallestPop > _bestTags[i].popularity) {
+                    smallestPop = _bestTags[i].popularity;
+                }
+            }
+            for (uint256 i = 0; i < _bestTags.length; i++) {
+                if (_bestTags[i].popularity == smallestPop) {
+                    if (i != _bestTags.length - 1) {
+                        Tag memory lastTag = _bestTags[_bestTags.length - 1];
+                        _bestTags.pop();
+                        _bestTags[i] = lastTag;
+                    } else {
+                        _bestTags.pop();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    function _replaceWorstBestTag(Tag memory tag) internal {
+        if (_bestTags.length != 0) {
             uint256 smallestPop = _bestTags[0].popularity;
             for (uint256 i = 1; i < _bestTags.length; i++) {
                 if (smallestPop > _bestTags[i].popularity) {
@@ -25,6 +41,31 @@ abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
                     _bestTags[i] = tag;
                     break;
                 }
+            }
+        }
+    }
+
+    function _addTag(Tag memory tag) internal {
+        _tagNames[tag.hash] = tag.name;
+        _tagPopularities[tag.hash] += 1;
+        tag.popularity = _tagPopularities[tag.hash];
+
+        if (_bestTags.length < _bestTagsLimit) {
+            _bestTags.push(tag);
+        } else {
+            _replaceWorstBestTag(tag);
+        }
+    }
+
+    function getBestTags() public view returns(Tag[] memory) {
+        return _bestTags;
+    }
+
+    function setBestTagLimit(uint256 limit) public onlyOwner() {
+        _bestTagsLimit = limit;
+        if (limit < _bestTags.length) {
+            for (uint i = 0; i < _bestTags.length - limit; i++) {
+                _removeWorstBestTag();
             }
         }
     }
