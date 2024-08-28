@@ -50,5 +50,6 @@ contract MemeTagsTest is Test,MemeTags {
         _updateTags(1);
         assertEq(_tagPopularities[uint256(keccak256("My"))], 2);
         assertEq(_tagPopularities[uint256(keccak256("Name"))], 2);
+        assertEq(_bestTags.length, 2);
     }
 }
