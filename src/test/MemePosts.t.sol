@@ -31,13 +31,13 @@ contract MemePostsTest is Test,MemePosts {
         _commentIndex[1] = 0;
     }
 
-    function test_addPost() public {
+    function testAddPost() public {
         vm.prank(accounts[4]);
-        __addPost("This", "This is a Post", 0, ReplyToType.NONE);
+        _addPost("This", "This is a Post", 0, ReplyToType.NONE);
         vm.prank(accounts[5]);
-        __addPost("This", "This is a POST too", 1, ReplyToType.POST);
+        _addPost("This", "This is a POST too", 1, ReplyToType.POST);
         vm.prank(accounts[6]);
-        __addPost("This", "This is a post three", 1, ReplyToType.COMMENT);
+        _addPost("This", "This is a post three", 1, ReplyToType.COMMENT);
 
         assertEq(_postId, 4);
         assertEq(_postIndex[1], 0);
@@ -55,10 +55,10 @@ contract MemePostsTest is Test,MemePosts {
     function testEditPost() public {
         vm.prank(accounts[5]);
         vm.expectRevert("Wrong sender");
-        editPost("Nice", "Nice", 0, ReplyToType.NONE);
+        editPost("Nice", "Nice", 1, 1, ReplyToType.NONE);
 
         vm.prank(accounts[4]);
-        editPost("Noice", "Nice", 1, ReplyToType.POST);
+        editPost("Noice", "Nice", 1, 1, ReplyToType.POST);
 
         assertEq(_posts[0].title, "Nice");
         assertEq(uint256(_posts[0].replyTo.replyType), uint256(ReplyToType.POST));
@@ -86,13 +86,13 @@ contract MemePostsTest is Test,MemePosts {
 
     function testGetPost() public {
         vm.prank(accounts[6]);
-        uint256 id = _addPost("This", "This is a comment three", 2, 1, ReplyToType.COMMENT);
+        uint256 id = _addPost("This", "This is a comment three", 1, ReplyToType.COMMENT);
 
         Post memory p = getPost(id);
         assertEq(p.id, 4);
         assertEq(p.content, "This");
         vm.prank(owner());
-        removePost(c.id);
+        removePost(p.id);
     }
 
     function testGetNewestPosts() public {
@@ -107,7 +107,7 @@ contract MemePostsTest is Test,MemePosts {
         vm.warp(100);
         uint256 id5 = _addPost("Five", "Five", 1, ReplyToType.COMMENT);
 
-        (Post[] memory posts,uint256 nextId) = _getNewestPosts(2, 1, 3, new string[](0), address(0));
+        (Post[] memory posts,uint256 nextId) = _getNewestPosts(1, 3, new uint256[](0), address(0));
 
         assertEq(nextId, 3);
 
@@ -145,9 +145,9 @@ contract MemePostsTest is Test,MemePosts {
         uint256 id7 = _addPost("One", "Seven", 1, ReplyToType.COMMENT);
 
         vm.warp(today);
-        (Post[] memory posts1,uint256 nextId1) = _filterPostsBy(2, FilterType.DAY, 0, 2, new string[](0), address(0));
-        (Post[] memory posts2,uint256 nextId2) = _filterPostsBy(2, FilterType.MONTH, 0, 3, new string[](0), address(0));
-        (Post[] memory posts3,uint256 nextId3) = _filterPostsBy(2, FilterType.WEEK, 0, 10, new string[](0), address(0));
+        (Post[] memory posts1,uint256 nextId1) = _filterPostsBy(FilterType.DAY, 0, 2, new uint256[](0), address(0));
+        (Post[] memory posts2,uint256 nextId2) = _filterPostsBy(FilterType.MONTH, 0, 3, new uint256[](0), address(0));
+        (Post[] memory posts3,uint256 nextId3) = _filterPostsBy(FilterType.WEEK, 0, 10, new uint256[](0), address(0));
 
         assertEq(nextId1, 3);
         assertEq(nextId2, 4);
@@ -218,9 +218,9 @@ contract MemePostsTest is Test,MemePosts {
             40 * 29 days = 1160
          */
 
-        (Post[] memory posts1,uint256 nextId1) = getPosts(2, FilterType.WEEK, SortType.TIME, 2, 3, new string[](0), address(0));
-        (Post[] memory posts2,uint256 nextId2) = getPosts(2, FilterType.WEEK, SortType.LIKE, 2, 3, new string[](0), address(0));
-        (Post[] memory posts3,uint256 nextId3) = getPosts(2, FilterType.WEEK, SortType.HOT, 2, 3, new string[](0), address(0));
+        (Post[] memory posts1,uint256 nextId1) = _getPosts(FilterType.WEEK, SortType.TIME, 2, 3, new uint256[](0), address(0));
+        (Post[] memory posts2,uint256 nextId2) = _getPosts(FilterType.WEEK, SortType.LIKE, 2, 3, new uint256[](0), address(0));
+        (Post[] memory posts3,uint256 nextId3) = _getPosts(FilterType.WEEK, SortType.HOT, 2, 3, new uint256[](0), address(0));
 
         assertEq(posts1.length, 3);
         assertEq(posts2.length, 3);
@@ -269,7 +269,7 @@ contract MemePostsTest is Test,MemePosts {
 
         uint256[] memory tags1 = new uint256[](1);
         tags1[0] = tags[0];
-        (Post memory posts1, uint256 nextId1) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, tags1, address(0));
+        (Post[] memory posts1, uint256 nextId1) = _getPosts(FilterType.LATEST, SortType.TIME, 0, 3, tags1, address(0));
 
         assertEq(nextId1, 0);
         assertEq(posts1.length, 1);
@@ -278,7 +278,7 @@ contract MemePostsTest is Test,MemePosts {
         uint256[] memory tags2 = new uint256[](2);
         tags1[0] = tags[3];
         tags1[1] = tags[4];
-        (Post memory posts2, uint256 nextId2) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, tags2, address(0));
+        (Post[] memory posts2, uint256 nextId2) = _getPosts(FilterType.LATEST, SortType.TIME, 0, 3, tags2, address(0));
 
         assertEq(nextId2, 0);
         assertEq(posts2.length, 2);
@@ -298,11 +298,11 @@ contract MemePostsTest is Test,MemePosts {
         vm.prank(accounts[6]);
         uint256 id3 = _addPost("Three", "Three", 0, ReplyToType.NONE);
 
-        (Post memory posts1, uint256 nextId1) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, new uint256[](0), accounts[5]);
+        (Post[] memory posts1, uint256 nextId1) = _getPosts(FilterType.LATEST, SortType.TIME, 0, 3, new uint256[](0), accounts[5]);
         assertEq(nextId1, 0);
         assertEq(posts1[0].title, "One");
 
-        (Post memory posts2, uint256 nextId2) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, new uint256[](0), accounts[6]);
+        (Post[] memory posts2, uint256 nextId2) = _getPosts(FilterType.LATEST, SortType.TIME, 0, 3, new uint256[](0), accounts[6]);
         assertEq(nextId2, 0);
         assertEq(posts2[0].title, "Two");
         assertEq(posts2[1].title, "Three");

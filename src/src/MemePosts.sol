@@ -155,9 +155,13 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         emit PostRemoved(postId, post.title, msg.sender);
     }
 
-    function getPosts(FilterType filter, SortType order, uint256 skip, uint256 limit, uint256[] calldata tagHashes, address author) public view returns(Post[] memory,uint256) {
+    function _getPosts(FilterType filter, SortType order, uint256 skip, uint256 limit, uint256[] memory tagHashes, address author) internal view returns(Post[] memory,uint256) {
         (Post[] memory posts,uint256 skipped) = filter == FilterType.LATEST ? _getNewestPosts(skip, limit, tagHashes, author) : _filterPostsBy(filter, skip, limit, tagHashes, author);
         return (MemeLibrary.mergeSortPosts(posts, order),skipped);
+    }
+
+    function getPosts(FilterType filter, SortType order, uint256 skip, uint256 limit, uint256[] calldata tagHashes, address author) public view returns(Post[] memory,uint256) {
+        return _getPosts(filter, order, skip, limit, tagHashes, author);
     }
 
     function getPost(uint256 postId) public view returns(Post memory) {
