@@ -2,12 +2,12 @@
 pragma solidity ^0.8.13;
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {AccessControlEnumerable} from "../lib/openzeppelin-contracts/contracts/access/AccessControlEnumerable.sol";
-import {MemeStorage} from "./MemeStorage.sol";
+import {MemeReply} from "./MemeReply.sol";
 import {MemeEvents} from "./MemeEvents.sol";
 import {MemeStructs} from "./MemeStructs.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
 
-abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage {
+abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeReply {
     function _getNewestComments(uint256 postId, uint256 skip, uint256 limit) internal view returns(Comment[] memory,uint256) {
         uint256[] memory ids = _posts[_postIndex[postId]].commentIds;
         Comment[] memory comments = new Comment[](limit);
@@ -48,6 +48,8 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
     }
 
     function addComment(string memory content, uint256 postId, uint256 replyToId, ReplyToType replyToType) public returns(uint256) {
+        _verifyReply(replyToType, replyToId);
+
         Comment memory comment;
         comment.id = _commentId;
         comment.author = msg.sender;
@@ -73,6 +75,8 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
     }
 
     function editComment(string memory content, uint256 commentId, uint256 replyToId, ReplyToType replyToType) public {
+        _verifyReply(replyToType, replyToId);
+
         Comment storage comment = _comments[_commentIndex[_commentId]];
         require(comment.author == msg.sender || owner() == msg.sender || hasRole(MOD_ROLE, msg.sender), "Wrong sender");
         require(comment.id == commentId, "Comment does not exist");

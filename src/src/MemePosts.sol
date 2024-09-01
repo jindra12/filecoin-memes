@@ -2,13 +2,13 @@
 pragma solidity ^0.8.13;
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {AccessControlEnumerable} from "../lib/openzeppelin-contracts/contracts/access/AccessControlEnumerable.sol";
-import {MemeStorage} from "./MemeStorage.sol";
+import {MemeReply} from "./MemeReply.sol";
 import {MemeEvents} from "./MemeEvents.sol";
 import {MemeStructs} from "./MemeStructs.sol";
 import {MemeLibrary} from "./MemeLibrary.sol";
 import {MemeTags} from "./MemeTags.sol";
 
-abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeStorage {
+abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeEvents,MemeReply {
     function _filterPostByTags(Post memory post, uint256[] memory tagHashes) internal view returns(bool) {
         if (tagHashes.length == 0) {
             return true;
@@ -84,6 +84,8 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
     }
 
     function _addPost(string memory title, string memory content, uint256 replyToId, ReplyToType replyToType) internal returns(uint256) {
+        _verifyReply(replyToType, replyToId);
+
         uint256 postId = _postId;
         _postIndex[_postId] = _posts.length;
         Post memory post;
@@ -112,6 +114,8 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
     }
 
     function editPost(string memory title, string memory content, uint256 postId, uint256 replyToId, ReplyToType replyToType) public {
+        _verifyReply(replyToType, replyToId);
+
         Post storage post = _posts[_postIndex[postId]];
         require(post.author == msg.sender || owner() == msg.sender || hasRole(MOD_ROLE, msg.sender), "Wrong sender");
         require(post.id == postId, "Post does not exist");
