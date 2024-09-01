@@ -31,13 +31,13 @@ contract MemePostsTest is Test,MemePosts {
         _commentIndex[1] = 0;
     }
 
-    function testAddPost() public {
+    function test_addPost() public {
         vm.prank(accounts[4]);
-        _addPost("This", "This is a Post", 1, 0, ReplyToType.NONE);
+        __addPost("This", "This is a Post", 0, ReplyToType.NONE);
         vm.prank(accounts[5]);
-        _addPost("This", "This is a POST too", 1, 1, ReplyToType.POST);
+        __addPost("This", "This is a POST too", 1, ReplyToType.POST);
         vm.prank(accounts[6]);
-        _addPost("This", "This is a post three", 2, 1, ReplyToType.COMMENT);
+        __addPost("This", "This is a post three", 1, ReplyToType.COMMENT);
 
         assertEq(_postId, 4);
         assertEq(_postIndex[1], 0);
@@ -55,10 +55,10 @@ contract MemePostsTest is Test,MemePosts {
     function testEditPost() public {
         vm.prank(accounts[5]);
         vm.expectRevert("Wrong sender");
-        editPost("Nice", "Nice", 1, 0, ReplyToType.NONE);
+        editPost("Nice", "Nice", 0, ReplyToType.NONE);
 
         vm.prank(accounts[4]);
-        editPost("Noice", "Nice", 1, 1, ReplyToType.POST);
+        editPost("Noice", "Nice", 1, ReplyToType.POST);
 
         assertEq(_posts[0].title, "Nice");
         assertEq(uint256(_posts[0].replyTo.replyType), uint256(ReplyToType.POST));
@@ -86,7 +86,7 @@ contract MemePostsTest is Test,MemePosts {
 
     function testGetPost() public {
         vm.prank(accounts[6]);
-        uint256 id = addPost("This", "This is a comment three", 2, 1, ReplyToType.COMMENT);
+        uint256 id = _addPost("This", "This is a comment three", 2, 1, ReplyToType.COMMENT);
 
         Post memory p = getPost(id);
         assertEq(p.id, 4);
@@ -97,15 +97,15 @@ contract MemePostsTest is Test,MemePosts {
 
     function testGetNewestPosts() public {
         vm.warp(500);
-        uint256 id1 = addPost("One", "One", 2, 1, ReplyToType.COMMENT);
+        uint256 id1 = _addPost("One", "One", 1, ReplyToType.COMMENT);
         vm.warp(1000);
-        uint256 id2 = addPost("Two", "Two", 2, 1, ReplyToType.COMMENT);
+        uint256 id2 = _addPost("Two", "Two", 1, ReplyToType.COMMENT);
         vm.warp(750);
-        uint256 id3 = addPost("Three", "Three", 2, 1, ReplyToType.COMMENT);
+        uint256 id3 = _addPost("Three", "Three", 1, ReplyToType.COMMENT);
         vm.warp(2000);
-        uint256 id4 = addPost("Four", "Four", 2, 1, ReplyToType.COMMENT);
+        uint256 id4 = _addPost("Four", "Four", 1, ReplyToType.COMMENT);
         vm.warp(100);
-        uint256 id5 = addPost("Five", "Five", 2, 1, ReplyToType.COMMENT);
+        uint256 id5 = _addPost("Five", "Five", 1, ReplyToType.COMMENT);
 
         (Post[] memory posts,uint256 nextId) = _getNewestPosts(2, 1, 3, new string[](0), address(0));
 
@@ -130,19 +130,19 @@ contract MemePostsTest is Test,MemePosts {
     function testFilterPostsBy() public {
         uint256 today = 60 days;
         vm.warp(today);
-        uint256 id1 = addPost("One", "One", 2, 1, ReplyToType.COMMENT);
+        uint256 id1 = _addPost("One", "One", 1, ReplyToType.COMMENT);
         vm.warp(today - 5 days);
-        uint256 id2 = addPost("One", "Two", 2, 1, ReplyToType.COMMENT);
+        uint256 id2 = _addPost("One", "Two", 1, ReplyToType.COMMENT);
         vm.warp(today - 14 days);
-        uint256 id3 = addPost("One", "Three", 2, 1, ReplyToType.COMMENT);
+        uint256 id3 = _addPost("One", "Three", 1, ReplyToType.COMMENT);
         vm.warp(today - 1 days);
-        uint256 id4 = addPost("One", "Four", 2, 1, ReplyToType.COMMENT);
+        uint256 id4 = _addPost("One", "Four", 1, ReplyToType.COMMENT);
         vm.warp(today - 6 days);
-        uint256 id5 = addPost("One", "Five", 2, 1, ReplyToType.COMMENT);
+        uint256 id5 = _addPost("One", "Five", 1, ReplyToType.COMMENT);
         vm.warp(today - 28 days);
-        uint256 id6 = addPost("One", "Six", 2, 1, ReplyToType.COMMENT);
+        uint256 id6 = _addPost("One", "Six", 1, ReplyToType.COMMENT);
         vm.warp(today - 31 days);
-        uint256 id7 = addPost("One", "Seven", 2, 1, ReplyToType.COMMENT);
+        uint256 id7 = _addPost("One", "Seven", 1, ReplyToType.COMMENT);
 
         vm.warp(today);
         (Post[] memory posts1,uint256 nextId1) = _filterPostsBy(2, FilterType.DAY, 0, 2, new string[](0), address(0));
@@ -185,19 +185,19 @@ contract MemePostsTest is Test,MemePosts {
     function testGetPosts() public {
         uint256 today = 60 days;
         vm.warp(today);
-        uint256 id1 = addPost("One", "One", 2, 1, ReplyToType.COMMENT);
+        uint256 id1 = _addPost("One", "One", 1, ReplyToType.COMMENT);
         vm.warp(today - 5 days);
-        uint256 id2 = addPost("One", "Two", 2, 1, ReplyToType.COMMENT);
+        uint256 id2 = _addPost("One", "Two", 1, ReplyToType.COMMENT);
         vm.warp(today - 14 days);
-        uint256 id3 = addPost("One", "Three", 2, 1, ReplyToType.COMMENT);
+        uint256 id3 = _addPost("One", "Three", 1, ReplyToType.COMMENT);
         vm.warp(today - 1 days);
-        uint256 id4 = addPost("One", "Four", 2, 1, ReplyToType.COMMENT);
+        uint256 id4 = _addPost("One", "Four", 1, ReplyToType.COMMENT);
         vm.warp(today - 6 days);
-        uint256 id5 = addPost("One", "Five", 2, 1, ReplyToType.COMMENT);
+        uint256 id5 = _addPost("One", "Five", 1, ReplyToType.COMMENT);
         vm.warp(today - 28 days);
-        uint256 id6 = addPost("One", "Six", 2, 1, ReplyToType.COMMENT);
+        uint256 id6 = _addPost("One", "Six", 1, ReplyToType.COMMENT);
         vm.warp(today - 31 days);
-        uint256 id7 = addPost("One", "Seven", 2, 1, ReplyToType.COMMENT);
+        uint256 id7 = _addPost("One", "Seven", 1, ReplyToType.COMMENT);
 
         getPost(id1).likes.likesCount = 100;
         getPost(id2).likes.likesCount = 9;
@@ -252,10 +252,63 @@ contract MemePostsTest is Test,MemePosts {
     }
 
     function testGetByTags() public {
+        uint256 id1 = _addPost("One", "One", 0, ReplyToType.NONE);
+        uint256 id2 = _addPost("Two", "Two", 0, ReplyToType.NONE);
+        uint256 id3 = _addPost("Three", "Three", 0, ReplyToType.NONE);
+        uint256[] memory tags = new uint256[](5);
+        tags[0] = uint256(keccak256("Hello"));
+        tags[1] = uint256(keccak256("World"));
+        tags[2] = uint256(keccak256("This"));
+        tags[3] = uint256(keccak256("Is"));
+        tags[4] = uint256(keccak256("Patrick"));
+        _postsByTag[tags[0]][id1] = true;
+        _postsByTag[tags[1]][id1] = true;
+        _postsByTag[tags[2]][id2] = true;
+        _postsByTag[tags[3]][id2] = true;
+        _postsByTag[tags[4]][id3] = true;
 
+        uint256[] memory tags1 = new uint256[](1);
+        tags1[0] = tags[0];
+        (Post memory posts1, uint256 nextId1) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, tags1, address(0));
+
+        assertEq(nextId1, 0);
+        assertEq(posts1.length, 1);
+        assertEq(posts1[0].title, "One");
+
+        uint256[] memory tags2 = new uint256[](2);
+        tags1[0] = tags[3];
+        tags1[1] = tags[4];
+        (Post memory posts2, uint256 nextId2) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, tags2, address(0));
+
+        assertEq(nextId2, 0);
+        assertEq(posts2.length, 2);
+        assertEq(posts2[0].title, "Two");
+        assertEq(posts2[1].title, "Three");
+
+        removePost(id1);
+        removePost(id2);
+        removePost(id3);
     }
 
     function testGetByAuthor() public {
-        
+        vm.prank(accounts[5]);
+        uint256 id1 = _addPost("One", "One", 0, ReplyToType.NONE);
+        vm.prank(accounts[6]);
+        uint256 id2 = _addPost("Two", "Two", 0, ReplyToType.NONE);
+        vm.prank(accounts[6]);
+        uint256 id3 = _addPost("Three", "Three", 0, ReplyToType.NONE);
+
+        (Post memory posts1, uint256 nextId1) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, new uint256[](0), accounts[5]);
+        assertEq(nextId1, 0);
+        assertEq(posts1[0].title, "One");
+
+        (Post memory posts2, uint256 nextId2) = getPosts(FilterType.LATEST, SortType.TIME, 0, 3, new uint256[](0), accounts[6]);
+        assertEq(nextId2, 0);
+        assertEq(posts2[0].title, "Two");
+        assertEq(posts2[1].title, "Three");
+
+        removePost(id1);
+        removePost(id2);
+        removePost(id3);
     }
 }
