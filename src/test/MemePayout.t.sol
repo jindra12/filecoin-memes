@@ -14,17 +14,17 @@ contract MemePayoutTest is Test,MemePayout {
     function setUp() public {
         for (uint256 i = 0; i < _accountCount; i++) {
             (address acc,) = TestLibrary.makeAccount(vm, uint32(i), 50);
-            accounts[i] = acc;
+            accounts.push(acc);
         }
         _postIndex[1] = 0;
         Post memory post;
         post.author = accounts[4];
-        _posts[0] = post;
+        _posts.push(post);
 
         _commentIndex[1] = 0;
         Comment memory comment;
         comment.author = accounts[5];
-        _comments[0] = comment;
+        _comments.push(comment);
 
         _grantRole(MOD_ROLE, accounts[0]);
         _grantRole(MOD_ROLE, accounts[1]);

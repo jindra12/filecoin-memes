@@ -30,12 +30,16 @@ library MemeLibrary {
         return result;
     }
 
+    function getMax(uint256 a, uint256 b) internal pure returns(uint256) {
+        return a > b ? a : b;
+    }
+
     function comparePostsByHot(MemeStructs.Post memory a, MemeStructs.Post memory b) internal pure returns(bool) {
-        return multiplyProtectOverflow(b.time, b.likes.likesCount) >= multiplyProtectOverflow(a.time, a.likes.likesCount);
+        return multiplyProtectOverflow(a.time, getMax(a.likes.likesCount, 1)) >= multiplyProtectOverflow(b.time, getMax(b.likes.likesCount, 1));
     }
 
     function comparePostsByLike(MemeStructs.Post memory a, MemeStructs.Post memory b) internal pure returns(bool) {
-        return b.likes.likesCount >= a.likes.likesCount;
+        return a.likes.likesCount >= b.likes.likesCount;
     }
 
     function comparePosts(MemeStructs.Post memory a, MemeStructs.Post memory b, MemeStructs.SortType kind) internal pure returns(bool) {
@@ -64,13 +68,13 @@ library MemeLibrary {
                 resultIndex++;
                 asIndex++;
             } else if (comparePosts(aS[asIndex], bS[bsIndex], kind)) {
-                result[resultIndex] = bS[bsIndex];
-                resultIndex++;
-                bsIndex++;
-            } else {
                 result[resultIndex] = aS[asIndex];
                 resultIndex++;
                 asIndex++;
+            } else {
+                result[resultIndex] = bS[bsIndex];
+                resultIndex++;
+                bsIndex++;
             }
         }
 

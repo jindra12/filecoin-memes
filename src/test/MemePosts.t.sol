@@ -14,7 +14,7 @@ contract MemePostsTest is Test,MemePosts {
     function setUp() public {
         for (uint256 i = 0; i < _accountCount; i++) {
             (address acc,) = TestLibrary.makeAccount(vm, uint32(i), 50);
-            accounts[i] = acc;
+            accounts.push(acc);
         }
 
         _grantRole(MOD_ROLE, accounts[0]);

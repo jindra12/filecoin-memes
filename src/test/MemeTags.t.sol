@@ -14,11 +14,11 @@ contract MemeTagsTest is Test,MemeTags {
     function setUp() public {
         for (uint256 i = 0; i < _accountCount; i++) {
             (address acc,) = TestLibrary.makeAccount(vm, uint32(i), 50);
-            accounts[i] = acc;
+            accounts.push(acc);
         }
         _postIndex[1] = 0;
         Post memory post;
-        _posts[0] = post;
+        _posts.push(post);
     }
 
     function testCreateTags() public {

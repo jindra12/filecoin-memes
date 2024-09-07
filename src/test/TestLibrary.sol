@@ -38,7 +38,7 @@ library TestLibrary {
     function getLikesCount(uint256 count) public pure returns(uint256[] memory) {
         uint256[] memory likesCount = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            likesCount[i] = i % 2 == 0 ? i : count - i;
+            likesCount[i] = i % 2 == 0 ? i : 10 * count - i;
         }
         return likesCount;
     }
@@ -53,7 +53,7 @@ library TestLibrary {
     function getTimeStamps(uint256 count) public view returns(uint256[] memory) {
         uint256[] memory timestamps = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            timestamps[i] = i % 2 == 1 ? (block.timestamp + i) : (block.timestamp + count - i);
+            timestamps[i] = i % 2 == 1 ? (block.timestamp + i) : (block.timestamp - i);
         }
         return timestamps;
     }
@@ -78,7 +78,6 @@ library TestLibrary {
             }
             post.content = getRandomTitle(0, 10);
             post.title = getRandomTitle(i, postCount - i);
-            post.time = block.timestamp;
             acc.push(post);
         }
 
@@ -97,12 +96,11 @@ library TestLibrary {
                 comment.author = addresses[i];
             }
             if (i >= timestamps.length) {
-                comment.time = block.timestamp;
+                comment.time = block.timestamp + i;
             } else {
                 comment.time = timestamps[i];
             }
             comment.content = getRandomTitle(0, 10);
-            comment.time = block.timestamp;
             acc.push(comment);
         }
 

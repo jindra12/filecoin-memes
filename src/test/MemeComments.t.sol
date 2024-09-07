@@ -14,17 +14,17 @@ contract MemeCommentsTest is Test,MemeComments {
     function setUp() public {
         for (uint256 i = 0; i < _accountCount; i++) {
             (address acc,) = TestLibrary.makeAccount(vm, uint32(i), 50);
-            accounts[i] = acc;
+            accounts.push(acc);
         }
         _postIndex[1] = 0;
         Post memory post;
         post.author = accounts[4];
-        _posts[0] = post;
+        _posts.push(post);
 
         _postIndex[2] = 1;
         Post memory post1;
         post1.author = accounts[5];
-        _posts[1] = post1;
+        _posts.push(post1);
 
         _grantRole(MOD_ROLE, accounts[0]);
         _grantRole(MOD_ROLE, accounts[1]);
