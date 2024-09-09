@@ -31,30 +31,44 @@ abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
     function _replaceWorstBestTag(Tag memory tag) internal {
         if (_bestTags.length != 0) {
             uint256 smallestPop = _bestTags[0].popularity;
-            for (uint256 i = 1; i < _bestTags.length; i++) {
-                if (smallestPop > _bestTags[i].popularity) {
-                    smallestPop = _bestTags[i].popularity;
-                }
-            }
+            bool found = false;
             for (uint256 i = 0; i < _bestTags.length; i++) {
-                if (_bestTags[i].popularity == smallestPop) {
-                    _bestTags[i] = tag;
+                if (found) {
                     break;
+                }
+                found = _bestTags[i].hash == tag.hash;
+            }
+            if (!found) {
+                for (uint256 i = 1; i < _bestTags.length; i++) {
+                    if (smallestPop > _bestTags[i].popularity) {
+                        smallestPop = _bestTags[i].popularity;
+                    }
+                }
+                for (uint256 i = 0; i < _bestTags.length; i++) {
+                    if (_bestTags[i].popularity == smallestPop && tag.popularity > smallestPop) {
+                        _bestTags[i] = tag;
+                        break;
+                    }
                 }
             }
         }
     }
 
-    function _addTag(Tag memory tag) internal {
+    function _addTag(Tag memory tag) internal returns(bool) {
+        bool hasTag = _tagPopularities[tag.hash] != 0;
         _tagNames[tag.hash] = tag.name;
         _tagPopularities[tag.hash] += 1;
         tag.popularity = _tagPopularities[tag.hash];
 
         if (_bestTags.length < _bestTagsLimit) {
-            _bestTags.push(tag);
+            if (!hasTag) {
+                _bestTags.push(tag);
+            }
         } else {
             _replaceWorstBestTag(tag);
         }
+
+        return !hasTag;
     }
 
     function getBestTags() public view returns(Tag[] memory) {
@@ -64,7 +78,8 @@ abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
     function setBestTagLimit(uint256 limit) public onlyOwner() {
         _bestTagsLimit = limit;
         if (limit < _bestTags.length) {
-            for (uint i = 0; i < _bestTags.length - limit; i++) {
+            uint256 removeCount = _bestTags.length - limit;
+            for (uint i = 0; i < removeCount; i++) {
                 _removeWorstBestTag();
             }
         }
@@ -75,10 +90,11 @@ abstract contract MemeTags is Ownable,MemeStructs,MemeEvents,MemeStorage {
             Tag memory tag;
             tag.name = tags[i];
             tag.hash = uint256(keccak256(bytes(tags[i])));
-            _addTag(tag);
-            _postsByTag[tag.hash][postId] = true;
-            _posts[_posts.length - 1].tagIds.push(tag.hash);
-            emit TagAdded(tag.name);
+            if (_addTag(tag)) {
+                _postsByTag[tag.hash][postId] = true;
+                _posts[_postIndex[postId]].tagIds.push(tag.hash);
+                emit TagAdded(tag.name);
+            }
         }
     }
 

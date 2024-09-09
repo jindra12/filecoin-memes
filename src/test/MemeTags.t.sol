@@ -19,6 +19,7 @@ contract MemeTagsTest is Test,MemeTags {
         _postIndex[1] = 0;
         Post memory post;
         _posts.push(post);
+        _bestTagsLimit = 10;
     }
 
     function testCreateTags() public {
@@ -30,15 +31,43 @@ contract MemeTagsTest is Test,MemeTags {
         tags[4] = "Waters";
         _createTags(1, tags);
         assertEq(_bestTags.length, 5);
+        assertEq(_bestTags[0].name, "My");
+        assertEq(_bestTags[1].name, "Name");
+        assertEq(_bestTags[2].name, "Is");
+        assertEq(_bestTags[3].name, "Johnny");
+        assertEq(_bestTags[4].name, "Waters");
         setBestTagLimit(3);
         assertEq(_bestTags.length, 3);
+        assertEq(_bestTags[2].name, "Is");
+        assertEq(_bestTags[1].name, "Name");
+        assertEq(_bestTags[0].name, "Johnny");
         string[] memory next = new string[](2);
-        tags[0] = "Johnny";
-        tags[1] = "Waters";
+        next[0] = "Johnny";
+        next[1] = "Waters";
         _createTags(1, next);
         assertEq(_bestTags.length, 3);
-        assertEq(_bestTags[0].hash, uint256(keccak256("Johnny")));
+        assertEq(_bestTags[2].name, "Is");
+        assertEq(_bestTags[1].name, "Name");
+        assertEq(_bestTags[0].name, "Waters");
+        assertEq(_bestTags[0].hash, uint256(keccak256("Waters")));
+        string[] memory next1 = new string[](2);
+        next1[0] = "Johnny";
+        next1[1] = "Waters";
+        _createTags(1, next1);
+        assertEq(_tagPopularities[uint256(keccak256("Is"))], 1);
+        assertEq(_tagPopularities[uint256(keccak256("Johnny"))], 3);
+        assertEq(_tagPopularities[uint256(keccak256("Waters"))], 3);
+        assertEq(_bestTags[1].name, "Johnny");
 
+        for (uint256 i = 0; i < 5; i++) {
+            string[] memory next2 = new string[](1);
+            next2[0] = "Next";
+            _createTags(1, next2);
+        }
+        assertEq(_tagPopularities[uint256(keccak256("Next"))], 5);
+        assertEq(_bestTags[2].name, "Next");
+        assertEq(_bestTags[1].name, "Johnny");
+        assertEq(_bestTags[0].name, "Waters");
     }
 
     function testUpdateTags() public {
