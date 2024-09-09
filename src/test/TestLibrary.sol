@@ -53,7 +53,11 @@ library TestLibrary {
     function getTimeStamps(uint256 count) public view returns(uint256[] memory) {
         uint256[] memory timestamps = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
-            timestamps[i] = i % 2 == 1 ? (block.timestamp + i) : (block.timestamp - i);
+            if (i % 2 == 1) {
+                timestamps[i] = block.timestamp + i;
+            } else {
+                timestamps[i] = block.timestamp > i ? block.timestamp - i : 1;
+            }
         }
         return timestamps;
     }
@@ -86,7 +90,7 @@ library TestLibrary {
     function populatePosts(Vm vm, MemeStructs.Post[] storage acc, uint256 postCount) public returns(MemeStructs.Post[] memory) {
         return populatePosts(acc, postCount, getAddresses(vm, uint32(postCount)), getTimeStamps(postCount), getLikesCount(postCount));
     }
-    function populateComments(MemeStructs.Comment[] storage acc, uint256 commentCount, address[] memory addresses, uint256[] memory timestamps) public returns(MemeStructs.Comment[] memory) {
+    function populateComments(MemeStructs.Comment[] storage acc, uint256 commentCount, address[] memory addresses, uint256[] memory timestamps, uint256[] memory likesCount) public returns(MemeStructs.Comment[] memory) {
         for (uint256 i = 0; i < commentCount; i++) {
             MemeStructs.Comment memory comment;
             comment.id = i;
@@ -96,9 +100,14 @@ library TestLibrary {
                 comment.author = addresses[i];
             }
             if (i >= timestamps.length) {
-                comment.time = block.timestamp + i;
+                comment.time = block.timestamp;
             } else {
                 comment.time = timestamps[i];
+            }
+            if (i >= likesCount.length) {
+                comment.likes.likesCount = i;
+            } else {
+                comment.likes.likesCount = likesCount[i];
             }
             comment.content = getRandomTitle(0, 10);
             acc.push(comment);
@@ -108,7 +117,7 @@ library TestLibrary {
     }
 
     function populateComments(Vm vm, MemeStructs.Comment[] storage acc, uint256 commentCount) public returns(MemeStructs.Comment[] memory) {
-        return populateComments(acc, commentCount, getAddresses(vm, uint32(commentCount)), getTimeStamps(commentCount));
+        return populateComments(acc, commentCount, getAddresses(vm, uint32(commentCount)), getTimeStamps(commentCount), getLikesCount(commentCount));
     }
 
     function makeAccount(Vm vm, uint32 random, uint256 funds) internal returns(address,bool) {

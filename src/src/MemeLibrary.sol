@@ -19,7 +19,7 @@ library MemeLibrary {
     }
 
     function comparePostsByTime(MemeStructs.Post memory a, MemeStructs.Post memory b) internal pure returns(bool) {
-        return b.time >= a.time;
+        return a.time >= b.time;
     }
 
     function multiplyProtectOverflow(uint256 a, uint256 b) internal pure returns(uint256) {
@@ -118,13 +118,13 @@ library MemeLibrary {
                 resultIndex++;
                 asIndex++;
             } else if (compareComments(aS[asIndex], bS[bsIndex], kind)) {
-                result[resultIndex] = bS[bsIndex];
-                resultIndex++;
-                bsIndex++;
-            } else {
                 result[resultIndex] = aS[asIndex];
                 resultIndex++;
                 asIndex++;
+            } else {
+                result[resultIndex] = bS[bsIndex];
+                resultIndex++;
+                bsIndex++;
             }
         }
 
@@ -153,15 +153,15 @@ library MemeLibrary {
     }
 
     function compareCommentsByTime(MemeStructs.Comment memory a, MemeStructs.Comment memory b) internal pure returns(bool) {
-        return b.time >= a.time;
+        return a.time >= b.time;
     }
 
     function compareCommentsByHot(MemeStructs.Comment memory a, MemeStructs.Comment memory b) internal pure returns(bool) {
-        return (b.time * b.likes.likesCount) >= (a.time * a.likes.likesCount);
+        return multiplyProtectOverflow(a.time, getMax(a.likes.likesCount, 1)) >= multiplyProtectOverflow(b.time, getMax(b.likes.likesCount, 1));
     }
 
     function compareCommentsByLike(MemeStructs.Comment memory a, MemeStructs.Comment memory b) internal pure returns(bool) {
-        return b.likes.likesCount >= a.likes.likesCount;
+        return a.likes.likesCount >= b.likes.likesCount;
     }
 
     function compareComments(MemeStructs.Comment memory a, MemeStructs.Comment memory b, MemeStructs.SortType kind) internal pure returns(bool) {
