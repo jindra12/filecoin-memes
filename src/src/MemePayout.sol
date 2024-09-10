@@ -62,7 +62,7 @@ abstract contract MemePayout is Ownable,AccessControlEnumerable,MemeStructs,Meme
         return _authorsFees[msg.sender];
     }
 
-    function getWithdrawableAdmin() public view onlyRole(MOD_ROLE) returns(uint256) {
+    function getWithdrawableAdmin() public view returns(uint256) {
         return _adminFees[msg.sender];
     }
 }
