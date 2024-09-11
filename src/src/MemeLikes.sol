@@ -57,7 +57,7 @@ abstract contract MemeLikes is Ownable,AccessControlEnumerable,MemeStructs,MemeE
     }
 
     function setAdminFee(uint256 fee) public onlyOwner() {
-        require(_likeFee > _likeFeeProfit + fee, "Invalid fee for likes");
+        require(_likeFee > _likeFeeProfit + fee, "Invalid fees for likes");
         _likeAdminProfit = fee;
         emit SetAdminLikeFee(fee);
     }
