@@ -32,16 +32,25 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
         uint256 timeUnit = kind == FilterType.DAY ? MemeLibrary.getDay() : kind == FilterType.WEEK ? MemeLibrary.getWeek() : MemeLibrary.getMonth(); 
         uint256[] memory ids = kind == FilterType.DAY ? _commentToday[postId][timeUnit] : kind == FilterType.WEEK ? _commentWeek[postId][timeUnit] : _commentMonth[postId][timeUnit];
         uint256 start = ids.length - 1;
+        uint256 giveUpCount = 0;
         if (skip >= start) {
             return (comments,0);
         }
-        for (uint256 i = start - skip; i >= 0; i--) {
+        for (uint256 i1 = start - skip + 1; i1 > 0; i1--) {
+            uint256 i = i1 - 1;
             uint256 commentIndex = _commentIndex[ids[i]];
-            comments[resultIndex] = _comments[commentIndex];
-            resultIndex++;
-            if (resultIndex == limit) {
+            Comment memory c = _comments[commentIndex];
+            if (c.id == ids[i]) {
+                comments[resultIndex] = c;
+                resultIndex++;
+                if (resultIndex == limit) {
+                    return (comments,i);
+                }
+            }
+            if (giveUpCount >= _giveUpLimit) {
                 return (comments,i);
             }
+            giveUpCount++;
         }
          
         return (comments,0);
@@ -62,8 +71,8 @@ abstract contract MemeComments is Ownable,AccessControlEnumerable,MemeStructs,Me
         _comments.push(comment);
 
         _commentToday[MemeLibrary.getDay()][postId].push(_commentId);
-        _commentToday[MemeLibrary.getWeek()][postId].push(_commentId);
-        _commentToday[MemeLibrary.getMonth()][postId].push(_commentId);
+        _commentWeek[MemeLibrary.getWeek()][postId].push(_commentId);
+        _commentMonth[MemeLibrary.getMonth()][postId].push(_commentId);
 
         uint256 currentId = _commentId;
 

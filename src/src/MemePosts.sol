@@ -65,9 +65,10 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         if (skip >= start) {
             return (posts,0);
         }
-        for (uint256 i = start - skip; i >= 0; i--) {
+        for (uint256 i1 = start - skip + 1; i1 > 0; i1--) {
+            uint256 i = i1 - 1;
             uint256 index = _postIndex[ids[i]];
-            if (_filterPostByTags(_posts[index], tagHashes) && MemeLibrary.filterPostByAuthor(_posts[index], author)) {
+            if (_posts[index].id == ids[i] && _filterPostByTags(_posts[index], tagHashes) && MemeLibrary.filterPostByAuthor(_posts[index], author)) {
                 posts[resultIndex] = _posts[index];
                 resultIndex++;
                 if (limit == resultIndex) {
@@ -99,8 +100,8 @@ abstract contract MemePosts is Ownable,AccessControlEnumerable,MemeStructs,MemeE
         _posts.push(post);
 
         _postToday[MemeLibrary.getDay()].push(_postId);
-        _postToday[MemeLibrary.getWeek()].push(_postId);
-        _postToday[MemeLibrary.getMonth()].push(_postId);
+        _postWeek[MemeLibrary.getWeek()].push(_postId);
+        _postMonth[MemeLibrary.getMonth()].push(_postId);
 
         _postsByAuthor[msg.sender].push(_postId);
 
